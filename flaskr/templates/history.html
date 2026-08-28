@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<nav>
+  <ul>
+    <h1>Weather</h1>
+  </ul>
+  <ul>
+    <li>Location</li>
+  </ul>
+  <ul></ul>
+ </nav>
+
+
+<form method="GET" action="{{ url_for('weather.weather') }}" class="row g-3 mb-4">
+    <div class="col-auto">
+        <label for="city" class="visually-hidden">City</label>
+        <select name="city" id="city" class="form-select">
+            <option value="">All Cities</option>
+            {% for c in cities %}
+                <option value="{{ c }}" {% if selected_city == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+</form>
+
+{# CHANGED: Checked 'table' instead of 'weather_table_html' to match Python return values #}
+{% if table %}
+<div class="table-responsive table-striped-wrapper">
+    {{ table | safe }}
+</div>
+{% else %}
+<p>No weather data available yet. Go to <a href="{{ url_for('index') }}">Home</a> to add some!</p>
+{% endif %}
+{% endblock %}
+

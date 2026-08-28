@@ -1,0 +1,5 @@
+.env
+
+instance/
+.webassets-cache
+services/weather/__pycache__

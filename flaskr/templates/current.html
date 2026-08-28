@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="mb-4">Current Weather for {{ city }}</h1>
+
+    <div class="container">
+        <div class="column-table">
+            <h2>Weather data</h2>
+            <table>
+                {% for row in data_rows %}
+                <tr>
+                    <th>{{ row[0] }}</th>
+                    <td>{{ row[1] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div class="column-image">
+            <img src="{{ url_for('static', filename='graphs/' + image_name) }}" alt="Display Image">
+        </div>
+    </div>
+{% endblock %}
+
+

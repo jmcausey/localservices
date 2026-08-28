@@ -1,0 +1,69 @@
+#!/bin/bash
+
+LOC=$1
+ID="$(sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db "SELECT id FROM chart WHERE location LIKE '%' || ? || "$LOC" || '%'  ORDER BY id DESC LIMIT 1;")"
+LOCATION="$(sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db  "SELECT  location FROM chart WHERE id = $ID ;") "
+CREATEDAT="$(sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db  "SELECT  created_at FROM chart WHERE id = $ID ;") "
+TEMPURATURE="$(sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db  "SELECT  tempurature FROM chart WHERE id = $ID  ;") "
+WINDSPEED="$(sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db  "SELECT  windspeed FROM chart WHERE id = $ID ;") "
+WINDDIRECTION="$(sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db  "SELECT  winddirection FROM chart WHERE id = $ID ;") "
+
+
+if (( $WINDDIRECTION >= 0 && $WINDDIRECTION <= 12 )) ; then WD='North'; fi
+if (( $WINDDIRECTION >=11 && $WINDDIRECTION <= 35 )) ; then WD='North Northeast'; fi
+if (( $WINDDIRECTION >= 33 && $WINDDIRECTION <= 56 )) ; then WD='Northeast'; fi
+if (( $WINDDIRECTION >= 56 && $WINDDIRECTION <= 79 )) ; then WD='East Northeast'; fi
+if (( $WINDDIRECTION >= 78 && $WINDDIRECTION <= 101 )) ; then WD='East'; fi
+if (( $WINDDIRECTION >= 101 && $WINDDIRECTION <= 123 )) ; then WD='East Southeast'; fi
+if (( $WINDDIRECTION >= 123 && $WINDDIRECTION <= 146 )) ; then WD='Southeast'; fi
+if (( $WINDDIRECTION >= 146 && $WINDDIRECTION <= 168 )) ; then WD='East Southeast'; fi
+if (( $WINDDIRECTION >= 168 && $WINDDIRECTION <= 191 )) ; then WD='South'; fi
+if (( $WINDDIRECTION >= 191 && $WINDDIRECTION <= 213 )) ; then WD='South Southwest'; fi
+if (( $WINDDIRECTION >= 213 && $WINDDIRECTION <= 236 )) ; then WD='Southwest'; fi
+if (( $WINDDIRECTION >= 236 && $WINDDIRECTION <= 258 )) ; then WD='West Southwest'; fi
+if (( $WINDDIRECTION >= 258 && $WINDDIRECTION <= 281 )) ; then WD='West'; fi
+if (( $WINDDIRECTION >= 281 && $WINDDIRECTION <= 303 )) ; then WD='West Northwest'; fi
+if (( $WINDDIRECTION >= 303 && $WINDDIRECTION <= 326 )) ; then WD='Northwest'; fi
+if (( $WINDDIRECTION >= 348 && $WINDDIRECTION <= 360 )) ; then WD='North'; fi
+
+
+#echo $ID
+#echo $REPORT #| speak
+#TIMESTAMP="$(date -d "$CREATEDAT")"
+LOCATION="${LOCATION//\"/}"
+WINDSPEEDMILES="$(echo "scale=0;$WINDSPEED * 0.621371" | bc)"
+#echo "$TIMESTAMP"
+echo -e "$TEMPURATURE\u00b0F in $LOCATION"
+echo -e "Windspeed is ${WINDSPEEDMILES%.*} miles per hour $WD at $WINDDIRECTION\xc2\xb0"
+
+
+
+#90° is East, 
+#180° is South, 
+#and 270° is West.
+#16-Point Compass Reference TableTo convert an exact degree to a 
+#standard compass point, the circle is divided into 16 sectors of 
+#22.5° each:DegreesCompass PointDegreesCompass Point
+#348.75° - 11.25°North(N)
+#168.75° - 191.25°South (S)
+#11.25° - 33.75° North-Northeast (NNE)
+#191.25° - 213.75°South-Southwest (SSW)
+#33.75° - 56.25°Northeast (NE)
+#213.75° - 236.25°Southwest (SW)
+#56.25° - 78.75°East-Northeast (ENE)
+#236.25° - 258.75°West-Southwest (WSW)
+#78.75° - 101.25°East (E)
+#258.75° - 281.25°West (W)
+#101.25° - 123.75°East-Southeast (ESE)
+#281.25° - 303.75°West-Northwest (WNW)
+#123.75° - 146.25°Southeast (SE)
+#303.75° - 326.25°Northwest (NW)
+#146.25° - 168.75°South-Southeast (SSE)
+#326.25° - 348.75°North-Northwest (NNW)
+#How It’s Calculated
+#If you are doing the math manually or coding this conversion, 
+#you take the degree modulo 360 (to ensure it falls within the circle) 
+#and divide the compass into 16-point sectors of 22.5° each:
+#Find the remainder: 
+#\(Index = WindDir \pmod{360}\)Round out into 16 sectors: \
+#(Index = \text{Round}(Index \div 22.5, 0) + 1\)

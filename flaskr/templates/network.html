@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<nav>
+  <ul>
+    <h1 class="mb-4">Network</h1>
+  </ul>
+ </nav>
+
+
+{% if table %}
+<div class="table-responsive table-striped-wrapper">
+    {{ table | safe }}
+</div>
+{% else %}
+<p>No network data available yet.</p>
+{% endif %}
+{% endblock %}
+

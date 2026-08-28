@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#geo="$1"
+geo="32.225,-96.008"
+request=$(wego -d 7 -f json -l "$geo")
+#tb=$(echo $request | jq '.Time') 
+#timeblock=$(date -d $tb +%s)
+location=$(echo $request | jq '.Location')
+description=$(echo $request |jq '.Current | .Desc')
+tempurature=$(echo "scale=0; (($(echo $request |jq '.Current | .TempC') * 9/5) + 32)" | bc)
+feelslike=$(echo $request | jq '.Current | .FeelsLikeC')
+chanceofrain=$(echo $request | jq '.Current | .ChanceOfRainPercent')
+precipitation=$(echo $request |jq '.Current | .PrecipM')
+visibility=$(echo $request | jq '.Current | .VisibleDistM')
+windspeed=$(echo $request | jq '.Current | .WindspeedKmph')
+windgust=$(echo $request | jq '.Current | .WindGustKmph')
+winddirection=$(echo $request | jq '.Current | .WinddirDegree')
+
+#DB_USER="weatherwise"
+#DB_PASS=""
+#DB_NAME="weatherdb"
+#TABLE_NAME="chart"
+
+sqlite3 /home/jon/local/weatherwise/data/weatherdb-sqlite3.db <<EOF
+INSERT INTO chart (
+    location, geolocation, description, tempurature, feelslike, 
+    chanceofrain, precipitation, visibility, windspeed, windgust, winddirection
+) VALUES (
+    '$location', '$geo', '$description', '$tempurature', '$feelslike', 
+    '$chanceofrain', '$precipitation', '$visibility', '$windspeed', '$windgust', '$winddirection'
+);
+EOF

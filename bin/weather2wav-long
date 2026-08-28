@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+#ssh weatherwise@laptop-1 "~/bin/update && ~/bin/report-malakoff" >> weather
+
+import subprocess
+from gtts import gTTS
+from pydub import AudioSegment
+from pathlib import Path
+import os, sys
+import time
+
+# Get Unix timestamp as a float
+current_time = time.time() 
+# Convert to integer to match `date +%s` output
+timestamp = int(time.time())
+
+# 1. Define text and parameters
+#text = sys.argv[1]
+language = 'en'
+# Get text from weatherwise
+#r = subprocess.run(["update-malakoff"])
+r = subprocess.run(["report-malakoff-long"], capture_output=True, text=True)
+report = str(r.stdout)
+
+# 2. Generate and save the audio as MP3 (gTTS's native format)
+#tts = gTTS(text=text, lang=language, slow=False)
+tts = gTTS(text=report, lang=language, slow=False)
+
+# save mp3 as text[:10].mp3
+# to ~/Music/Weather/timestamp
+home = Path.home()
+out = home / "audio" / "weather"
+file = f"{timestamp}.mp3"
+filename = out / file
+tts.save(filename)
+tts.save('/home/weatherwise/Public/weather-long.mp3')
+
+# 3. Convert the temporary MP3 file to a WAV file
+#sound = AudioSegment.from_mp3(filename)
+#sound.export(filename.replace(".mp3", ".wav"), format="wav")
+
+# 4. Clean up the temporary MP3 file
+#os.remove(filename)
+
+

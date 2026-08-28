@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}New Post{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<form action="{{ url_for('blog.create') }}" method="post" enctype="multipart/form-data">
+    <label for="title">Title</label>
+    <input name="title" id="title" value="{{ request.form['title'] }}" required>
+
+    <label for="image">Image</label>
+    <input type="file" name="image" id="image" accept="image/*" onchange="previewImage(event)">
+    
+    <!-- Image preview container -->
+    <div id="image-preview-container" style="margin-top: 10px; display: none;">
+        <img id="image-preview" src="#" alt="Image Preview" style="max-width: 100%; max-height: 300px; border-radius: 4px;">
+    </div>
+
+    <label for="body">Body</label>
+    <textarea name="body" id="body">{{ request.form['body'] }}</textarea>
+
+    <input type="submit" value="Save">
+</form>
+
+<script>
+function previewImage(event) {
+    const input = event.target;
+    const previewContainer = document.getElementById('image-preview-container');
+    const previewImage = document.getElementById('image-preview');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        previewContainer.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+<!doctype html>
+<head>
+<meta http-equiv="refresh" content="900">
+</head>
+<title>{% block title %}{% endblock %} - Local</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<nav class="navbar">  
+  <!-- Left-aligned links grouped in a single list -->
+  <ul class="nav-left">
+    <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
+    <li><a href="{{ url_for('weather.weather') }}">Weather</a></li>
+    <li><a href="{{ url_for('network.network') }}">Network</a></li>
+    <la><a href="{{ url_for('astronomy.astronomy_table') }}">Astronomy</a></li>
+  </ul>
+
+
+  <!-- Right-aligned items -->
+  <div class="nav-right">
+    <ul class="user-actions">
+      {% if g.user %}
+        <li><span>{{ g.user['username'] }}</span></li>
+        <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+      {% else %}
+        <li><a href="{{ url_for('auth.register') }}">Register</a></li>
+        <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
+      {% endif %}
+    </ul>
+    <ul class="clock-container">
+      <li id="live-clock">--:--:-- --</li>
+    </ul>
+  </div>
+</nav>
+
+<section class="content">
+  <header>
+    {% block header %}{% endblock %}
+  </header>
+  {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</section>
+
+<!-- Live Clock Script -->
+<script>
+  function updateClock() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit', 
+      hour12: true 
+    });
+    document.getElementById('live-clock').textContent = timeString;
+  }
+  
+  updateClock(); // Initial call to avoid startup delay
+  setInterval(updateClock, 1000); // Refresh every second
+</script>
