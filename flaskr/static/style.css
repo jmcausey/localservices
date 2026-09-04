@@ -73,3 +73,56 @@ nav th, nav td,
   margin: 0;
   font-size: 1.5rem;
 }
+
+/* Container for aligned buttons */
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Base button styles applied to both <button> and <a> */
+.btn {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  color: #333;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  line-height: 1.2;
+}
+
+.btn:hover {
+  background-color: #e2e6ea;
+  border-color: #dae0e5;
+}
+
+/* Specific styling for the Edit action button */
+.btn-edit {
+  background-color: #007bff;
+  color: #ffffff;
+  border-color: #007bff;
+}
+
+.btn-edit:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+  color: #ffffff;
+}
+
+/* Optional badges for header status text */
+.badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.badge-new { background-color: #e2e3e5; color: #383d41; }
+.badge-pending { background-color: #fff3cd; color: #856404; }
+.badge-complete { background-color: #d4edda; color: #155724; }

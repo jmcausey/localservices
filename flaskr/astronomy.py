@@ -61,6 +61,7 @@ def post_astro_updates_from_db(app, author_id=1):
 
         # 2. Format rows into your styled HTML .table markup
         table_rows = "".join(
+            f"\n"
             f"sunrise: {sunrise} | "
             f"sunset: {sunset} | "
             f"solar noon: {solar_noon} | "

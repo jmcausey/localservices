@@ -5,16 +5,30 @@
 {% endblock %}
 
 {% block content %}
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     <label for="title">Title</label>
-    <input name="title" id="title"
-      value="{{ request.form['title'] or post['title'] }}" required>
+    <input name="title" id="title" value="{{ request.form['title'] or post['title'] }}" required>
+
+    <label for="status">Status</label>
+    <select name="status" id="status">
+      <option value="new" {% if (request.form['status'] or post['status']) == 'new' %}selected{% endif %}>New</option>
+      <option value="pending" {% if (request.form['status'] or post['status']) == 'pending' %}selected{% endif %}>Pending</option>
+      <option value="complete" {% if (request.form['status'] or post['status']) == 'complete' %}selected{% endif %}>Complete</option>
+    </select>
+
     <label for="body">Body</label>
     <textarea name="body" id="body">{{ request.form['body'] or post['body'] }}</textarea>
-    <input type="submit" value="Save">
+
+    <label for="image">Replace/Add Image (Optional)</label>
+    <input type="file" name="image" id="image" accept="image/*">
+
+    <input type="submit" value="Save Changes">
   </form>
+
   <hr>
+
   <form action="{{ url_for('blog.delete', id=post['id']) }}" method="post">
-    <input class="danger" type="submit" value="Delete" onclick="return confirm('Are you sure?');">
+    <input class="danger" type="submit" value="Delete Post" onclick="return confirm('Are you sure?');">
   </form>
 {% endblock %}
+

@@ -16,8 +16,11 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
+from flaskr.db import get_db
+from flaskr.blog import create_post
+
 # Load environment variables from .env file in project root
-env_path = Path(__file__).parents[2] / ".env"
+env_path = Path.home() / "local" / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # --- Constants & Configuration ---
@@ -54,45 +57,6 @@ def get_db_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
-
-
-def create_table() -> None:
-    """Initializes the database schema if it does not already exist."""
-    with get_db_connection() as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS chart (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                created_at DATETIME DEFAULT (datetime('now', 'localtime')),
-                location TEXT NOT NULL,
-                geolocation TEXT,
-                description TEXT,
-                temperature REAL,
-                pressure INTEGER,
-                feelslike REAL,
-                humidity INTEGER,
-                visibility INTEGER,
-                windspeed REAL,
-                winddirection INTEGER,
-                clouds INTEGER,
-                sunrise DATETIME,
-                sunset DATETIME,
-                dew_point REAL GENERATED ALWAYS AS (
-                    CAST(ROUND(
-                    (237.3 * (ln(humidity / 100.0) + ((17.27 * temperature) / (temperature + 237.3)))) / 
-                    (17.27 - (ln(humidity / 100.0) + ((17.27 * temperature) / (temperature + 237.3))))
-                    ) AS INTEGER)       
-                ) STORED
-            );
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS gallery (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                filename TEXT NOT NULL,
-                image_data BLOB NOT NULL
-            );
-        ''')
-        conn.commit()
-
 
 def get_weather_data_from_api(city_name: Optional[str]) -> Optional[Dict[str, Any]]:
     """Fetches real-time JSON weather data using the OpenWeather API."""
@@ -242,9 +206,60 @@ def graph1(db_path=DATABASE, location_name=CURRENT_LOCATION, output_filename=Non
     return os.path.basename(output_filename)
 
 
+def post_weather_updates_from_db(app, author_id=1):
+    """
+    Reads weather logs from the DB and creates a new weather blog post.
+    Must run within Flask app context.
+    """
+    with app.app_context():
+        db = get_db()
+        
+        # 1. Fetch hourly weather data from your database
+        weather_rows = db.execute(
+            'SELECT location, created_at, temperature, pressure, feelslike, windspeed, winddirection, dew_point, description, humidity '
+            'FROM chart '
+            'ORDER BY created_at DESC LIMIT 1'
+        ).fetchall()
+
+        if not weather_rows:
+            print("No weather data found in DB.")
+            return
+        location = weather_rows[0]['location']
+
+        # 2. Format rows into your styled HTML .table markup
+        table_rows = "".join(
+            f"\n"
+            f"{row['description']} | "
+            f"temperature: {row['temperature']}°F | "
+            f"feels like: {row['feelslike']} | "
+            f"humidity: {row['humidity']}% | "
+            f"windspead: {row['windspeed']} | "
+            f"winddirection: {row['winddirection']} | "
+            f"dew_point: {row['dew_point']} "
+            for row in weather_rows
+        )
+
+        # 3. Access blog creation API logic directly
+        title = f"{location} weather - {datetime.now().strftime('%I:%M %p')}"
+        body = f"{table_rows}"
+
+        create_post(title=title, body=body, author_id=author_id)
+        print(f"Successfully posted: '{title}'")
+
+
 def fetch_weather():
     """Main execution target for scheduler."""
-    create_table()
     data = get_weather_data_from_api(CURRENT_LOCATION)
     if data:
         process_and_insert_weather_data(data)
+
+
+if __name__ == "__main__":
+    # Standard standalone run (API fetch + chart generation)
+    fetch_weather()
+    graph1()
+    
+    # Optional blog update (requires Flask application context)
+    from flaskr import create_app
+    app = create_app()
+    post_weather_updates_from_db(app, author_id=1)

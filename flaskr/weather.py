@@ -13,7 +13,7 @@ from flaskr.blog import create_post
 bp = Blueprint('weather', __name__)
 hostname = socket.gethostname()
 
-LOCATIONS_FILE = "/home/jon/local/weatherwise/data/locations.json"
+LOCATIONS_FILE = "/home/jon/local/data/locations/locations.json"
 
 def format_time(ts):
     if not ts:
@@ -61,6 +61,7 @@ def post_weather_updates_from_db(app, author_id=1):
 
         # 2. Format rows into your styled HTML .table markup
         table_rows = "".join(
+            f"\n"
             f"{row['description']} | "
             f"temperature: {row['temperature']}°F | "
             f"feels like: {row['feelslike']} | "

@@ -3,6 +3,7 @@ import socket
 from flask import Flask
 import sqlite3
 import click
+import markupsafe
 from flask import current_app, g
 from flask.cli import with_appcontext
 
@@ -17,6 +18,12 @@ def create_app(test_config=None):
     from . import db
     db.init_app(app)
 
+    # Register custom nl2br filter
+    @app.template_filter('nl2br')
+    def nl2br_filter(s):
+        if not s:
+            return ""
+        return markupsafe.Markup(str(s).replace('\n', '<br>\n'))
 
     # In your app creation file (e.g., __init__.py or app.py)
     @app.context_processor

@@ -22,7 +22,7 @@ load_dotenv(dotenv_path=env_path)
 
 # --- Constants & Configuration ---
 DATABASE = os.path.expanduser('~/local/data/flaskr.sqlite')
-LOCATIONS_FILE = os.path.expanduser('~/local/data/locations.json')
+LOCATIONS_FILE = os.path.expanduser('~/local/data/locations/locations.json')
 CURRENT_LOCATION = os.environ.get("CURRENT_LOCATION")
 API_KEY = os.environ.get("IPGEOLOCATION_API_KEY")  
 

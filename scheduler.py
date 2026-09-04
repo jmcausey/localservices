@@ -3,83 +3,68 @@
 import os
 import sys
 import time
-import subprocess
 from pathlib import Path
-import schedule
+from schedule import repeat, every, run_pending
 
-# Explicitly register project paths
-BASE_DIR = Path(__file__).resolve().parent
-SERVICE_DIR = BASE_DIR / "services"
+# Add ~/local/flaskr to Python path
+flaskr_dir = Path(__file__).resolve().parent / "flaskr"
+if str(flaskr_dir) not in sys.path:
+    sys.path.append(str(flaskr_dir))
 
-for path in [str(BASE_DIR), str(SERVICE_DIR)]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
+# Import application factory and task functions
+from flaskr import create_app
+from weather_tasks import fetch_weather, post_weather_updates_from_db, graph1
+from astronomy_tasks import (
+    post_apod_to_blog, 
+    generate_celestial_dial, 
+    post_celestial_dial_to_blog,
+    fetch_astronomy_data,
+    process_and_insert_astronomy_data,
+    post_astronomy_data_to_blog
+)
 
-# Debug check before importing
-openweather_path = SERVICE_DIR / "weather" / "openweather.py"
-if not openweather_path.exists():
-    print(f"ERROR: Expected file at '{openweather_path}' but it was not found!")
-    print(f"Current Working Directory: {os.getcwd()}")
-    sys.exit(1)
+LOCATIONS_FILE = os.path.expanduser('~/local/data/locations/locations.json')
+CURRENT_LOCATION = os.environ.get("CURRENT_LOCATION")
 
-from weather.openweather import fetch_weather
+# Instantiate Flask app once for context access
+app = create_app()
 
-#def run_network_scan_job():
-#    """Triggers the root-privileged scapy network scanner via subprocess."""
-#    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] * Starting automated network scan...")
-#    
-#    command = [
-#        "sudo", "-H", 
-#        "/home/jon/.pyenv/versions/3.13.7/bin/python", 
-#        "-m", "flaskr.scanner"
-#    ]
-#    
-#    try:
-#        # Run command from BASE_DIR so python module pathing matches perfectly
-#        result = subprocess.run(
-#            command, 
-#            cwd=str(BASE_DIR),
-#            capture_output=True, 
-#            text=True, 
-#            check=True
-#        )
-#        print("[+] Scanner Output:")
-#        print(result.stdout.strip())
-#        
-#    except subprocess.CalledProcessError as e:
-#        print(f"[-] Network scanner failed with exit code {e.returncode}", file=sys.stderr)
-#        print(f"[-] Error details:\n{e.stderr.strip()}", file=sys.stderr)
+@repeat(every().hour)
+def weather_update():
+    fetch_weather()
+    post_weather_updates_from_db(app, author_id=1)
 
-def hourly_weather():
-    subprocess.run(["python3","-m","flaskr.weather"])
+@repeat(every().day.at("06:00"))
+def nasa_apod():
+     # 2. Post APOD
+    post_apod_to_blog(app, author_id=1)    
 
-def hourly_astronomy():
-    subprocess.run(["python3","-m","flaskr.astronomy"])
+@repeat(every().day.at("08:00"))
+def daily_astronomy_update():
+    # 1. Update IPGeolocation data in DB
+    if not CURRENT_LOCATION:
+        print("No CURRENT_LOCATION configured in environment.")
+        return
+    data = fetch_astronomy_data(CURRENT_LOCATION)
+    if data:
+        process_and_insert_astronomy_data(data)
+        post_astronomy_data_to_blog(app, author_id=1)
+   
+    # 3. Generate and post Celestial Dial
+    chart_filename = generate_celestial_dial()
+    if chart_filename:
+        post_celestial_dial_to_blog(app, chart_filename, author_id=1)
 
-def daily_astronomy():
-    subprocess.run(["python3","services/astronomy/ipgeolocation.py "])
+if __name__ == "__main__":
+    # Run once immediately on startup wrapped safely
+    try:
+        weather_update()  # Uncomment when ready to test weather on startup
+        nasa_apod()
+        daily_astronomy_update()
+    except Exception as e:
+        print(f"Error during initial startup run: {e}")
 
-# Schedule Jobs
-# 1. Weather job runs every 15 minutes
-schedule.every(15).minutes.do(fetch_weather)
-
-# 2. Network scan job runs every 15 minutes (or adjust as needed)
-#schedule.every(15).minutes.do(run_network_scan_job)
-
-schedule.every().hour.at(":00").do(hourly_weather)
-schedule.every(4).hours.do(hourly_astronomy)
-schedule.every().day.at("00:00").do(daily_astronomy)
-
-print("Scheduler started. Press Ctrl+C to stop.")
-
-# Run both jobs immediately once on startup
-#fetch_weather()
-#hourly_weather()
-#hourly_astronomy()
-#daily_astronomy()
-#run_network_scan_job()
-
-# Main orchestration loop
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+    # Hand over control to schedule loop
+    while True:
+        run_pending()
+        time.sleep(1)

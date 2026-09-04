@@ -8,22 +8,38 @@
 {% endblock %}
 
 {% block content %}
-  {% for post in posts %}
-    <article class="post">
-      <header>
-        <div>
-          <h1>{{ post['title'] }}</h1>
-          <div class="about">by {{ post['username'] }} on {{ post['created'].strftime('%Y-%m-%d') }}</div>
+
+{% for post in posts %}
+  <article class="post">
+    <header>
+      <div>
+        <h1>{{ post['title'] }}</h1>
+        <div class="about">
+          by {{ post['username'] }} | Status: <span class="badge badge-{{ post['status'] }}">{{ post['status']|capitalize }}</span>
         </div>
-        {% if g.user['id'] == post['author_id'] %}
-          <a class="action" href="{{ url_for('blog.update', id=post['id']) }}">Edit</a>
-        {% endif %}
-      </header>
-      <div class="body">{{ post['body']|safe }}</div>
-      
-    </article>
-    {% if not loop.last %}
-      <hr>
-    {% endif %}
-  {% endfor %}
+      </div>
+
+      {% if g.user and g.user['id'] == post['author_id'] %}
+        <div class="post-actions">
+          <!-- Quick Status Change Buttons -->
+          {% for st in ['new', 'pending', 'complete'] %}
+            {% if post['status'] != st %}
+              <form action="{{ url_for('blog.change_status', id=post['id'], new_status=st) }}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-status">Mark {{ st|capitalize }}</button>
+              </form>
+            {% endif %}
+          {% endfor %}
+          
+          <!-- Edit Action Styled as Button -->
+          <a class="btn btn-edit" href="{{ url_for('blog.update', id=post['id']) }}">Edit Post</a>
+        </div>
+      {% endif %}
+    </header>
+    
+    <div class="body">{{ post['body']|nl2br|safe }}</div>
+    
+  </article>
+{% endfor %}
+
 {% endblock %}
+
