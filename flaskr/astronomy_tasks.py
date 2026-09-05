@@ -320,11 +320,10 @@ def generate_celestial_dial(db_path: str = DATABASE, output_dir: str = "~/local/
 
 def post_celestial_dial_to_blog(app, image_name: str, author_id: int = 1) -> bool:
     """Posts the generated celestial dial chart to the Flask blog."""
-    title = f"Daily Celestial Dial: {datetime.now().strftime('%B %d, %Y')}"
+    title = f"Celestial Dial: {datetime.now().strftime('%B %d, %Y')}"
     web_image_path = f"/static/media/{image_name}"
     body = (
         f'<p><img src="{web_image_path}" alt="Celestial Dial" class="img-fluid rounded"></p>'
-        f'<p>Automated daily astronomy visualization generated from system data.</p>'
     )
 
     with app.app_context():
@@ -379,8 +378,6 @@ def post_astronomy_data_to_blog(app, location_query: Optional[str] = None, autho
 
     # 5. Build side-by-side HTML layout (Table on Left, Dial Image on Right)
     body = f"""
-        <div class="row g-2 align-items-center justify-content-center">
-  <div class="col-lg-6 d-flex justify-content-center">
     <table class="table table-sm table-borderless m-0 small align-middle w-auto">
       <tbody>
         <tr>
@@ -415,17 +412,12 @@ def post_astronomy_data_to_blog(app, location_query: Optional[str] = None, autho
         </tr>
       </tbody>
     </table>
-  </div>
-  <div class="col-lg-6 text-center">
-    <img src="{web_image_path}" alt="Celestial Dial" class="img-fluid rounded border shadow-sm p-0 m-0" style="max-height: 220px;">
-  </div>
-</div>
           """
 
     # 6. Post to Flask DB context
     with app.app_context():
         create_post(title=title, body=body, author_id=author_id)
-        print(f"Successfully published combined Astronomy & Dial post: '{title}'")
+        print(f"Successfully published Astronomy summary post: '{title}'")
         return True
 
 if __name__ == "__main__":

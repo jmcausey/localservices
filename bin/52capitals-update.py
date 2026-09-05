@@ -4,7 +4,7 @@ import time
 import requests
 import sqlite3
 
-api_key = "5c4b09fdb3cbf0962a16af90febbf116" 
+api_key = os.environ.get(OPENWEATHER_API_KEY) 
 
 #Key U.S. State Capital Coordinates
 locations = {"Albany, New York" : "42.650,-73.750",
