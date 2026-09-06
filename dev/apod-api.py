@@ -3,7 +3,7 @@ import os
 
 def f():
     # Replace with your actual API key or use "DEMO_KEY" for limited testing
-    API_KEY = 'MjadFtvcU3UvQnqnPBonvAaCK1zB0jchrNAo8hO8'
+    API_KEY = os.getenv('NASA_API_KEY')
     url = f"https://api.nasa.gov/planetary/apod?api_key={API_KEY}"
 
     response = requests.get(url)

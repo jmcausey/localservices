@@ -59,8 +59,8 @@ if __name__ == "__main__":
     # Run once immediately on startup wrapped safely
     try:
         weather_update()  # Uncomment when ready to test weather on startup
-        nasa_apod()
-        daily_astronomy_update()
+        #nasa_apod()
+        #daily_astronomy_update()
     except Exception as e:
         print(f"Error during initial startup run: {e}")
 
