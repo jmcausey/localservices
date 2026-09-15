@@ -376,43 +376,50 @@ def post_astronomy_data_to_blog(app, location_query: Optional[str] = None, autho
 
     web_image_path = f"/static/media/{chart_filename}"
 
-    # 5. Build side-by-side HTML layout (Table on Left, Dial Image on Right)
-    body = f"""
-    <table class="table table-sm table-borderless m-0 small align-middle w-auto">
-      <tbody>
-        <tr>
-          <th class="p-0 text-muted pe-2 text-end">Sunrise:</th>
-          <td class="p-0 font-monospace pe-3">{data.get('sunrise','N/A')}</td>
-          <th class="p-0 text-muted pe-2 text-end">Moonrise:</th>
-          <td class="p-0 font-monospace">{data.get('moonrise','N/A')}</td>
-        </tr>
-        <tr>
-          <th class="p-0 text-muted pe-2 text-end">Solar Noon:</th>
-          <td class="p-0 font-monospace pe-3">{data.get('solar_noon','N/A')}</td>
-          <th class="p-0 text-muted pe-2 text-end">Moonset:</th>
-          <td class="p-0 font-monospace">{data.get('moonset','N/A')}</td>
-        </tr>
-        <tr>
-          <th class="p-0 text-muted pe-2 text-end">Sunset:</th>
-          <td class="p-0 font-monospace pe-3">{data.get('sunset','N/A')}</td>
-          <th class="p-0 text-muted pe-2 text-end">Phase:</th>
-          <td class="p-0">{data.get('moon_phase','N/A')}</td>
-        </tr>
-        <tr>
-          <th class="p-0 text-muted pe-2 text-end">Day Length:</th>
-          <td class="p-0 font-monospace pe-3">{data.get('day_length','N/A')}</td>
-          <th class="p-0 text-muted pe-2 text-end">Illum:</th>
-          <td class="p-0 font-monospace">{illum_str}</td>
-        </tr>
-        <tr>
-          <th class="p-0 text-muted pe-2 text-end">Sun Alt:</th>
-          <td class="p-0 font-monospace pe-3">{sun_alt_str}</td>
-          <th class="p-0 text-muted pe-2 text-end">Moon Alt:</th>
-          <td class="p-0 font-monospace">{moon_alt_str}</td>
-        </tr>
-      </tbody>
-    </table>
-          """
+    # 5. Build side-by-side HTML layout without extra newlines or spacing
+   # 5. Build side-by-side HTML layout with centered dial image
+    raw_body = f"""<div class="d-flex flex-wrap align-items-center gap-3">
+      <table class="table table-sm table-borderless m-0 small align-middle w-auto">
+        <tbody>
+          <tr>
+            <th class="p-0 text-muted pe-2 text-end">Sunrise:</th>
+            <td class="p-0 font-monospace pe-3">{data.get('sunrise','N/A')}</td>
+            <th class="p-0 text-muted pe-2 text-end">Moonrise:</th>
+            <td class="p-0 font-monospace">{data.get('moonrise','N/A')}</td>
+          </tr>
+          <tr>
+            <th class="p-0 text-muted pe-2 text-end">Solar Noon:</th>
+            <td class="p-0 font-monospace pe-3">{data.get('solar_noon','N/A')}</td>
+            <th class="p-0 text-muted pe-2 text-end">Moonset:</th>
+            <td class="p-0 font-monospace">{data.get('moonset','N/A')}</td>
+          </tr>
+          <tr>
+            <th class="p-0 text-muted pe-2 text-end">Sunset:</th>
+            <td class="p-0 font-monospace pe-3">{data.get('sunset','N/A')}</td>
+            <th class="p-0 text-muted pe-2 text-end">Phase:</th>
+            <td class="p-0">{data.get('moon_phase','N/A')}</td>
+          </tr>
+          <tr>
+            <th class="p-0 text-muted pe-2 text-end">Day Length:</th>
+            <td class="p-0 font-monospace pe-3">{data.get('day_length','N/A')}</td>
+            <th class="p-0 text-muted pe-2 text-end">Illum:</th>
+            <td class="p-0 font-monospace">{illum_str}</td>
+          </tr>
+          <tr>
+            <th class="p-0 text-muted pe-2 text-end">Sun Alt:</th>
+            <td class="p-0 font-monospace pe-3">{sun_alt_str}</td>
+            <th class="p-0 text-muted pe-2 text-end">Moon Alt:</th>
+            <td class="p-0 font-monospace">{moon_alt_str}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="text-center flex-grow-1">
+        <img src="{web_image_path}" alt="Celestial Dial" class="img-fluid rounded mx-auto d-block">
+      </div>
+    </div>"""
+
+    # Collapse linebreaks and trim whitespace to prevent auto-insertion of <br> tags
+    body = "".join(line.strip() for line in raw_body.splitlines())
 
     # 6. Post to Flask DB context
     with app.app_context():
@@ -422,3 +429,5 @@ def post_astronomy_data_to_blog(app, location_query: Optional[str] = None, autho
 
 if __name__ == "__main__":
     fetch_and_store_astronomy()
+    #fetch_apod_data()
+    post_celestial_dial_to_blog()

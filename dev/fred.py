@@ -3,7 +3,7 @@ Pull current values for economic indicators from the FRED API and
 update economic_indicators.db.
 
 Setup:
-    pip install requests
+    pip install requests python-dotenv
     export FRED_API_KEY="your_key_here"   # from fred.stlouisfed.org
 
 Usage:
@@ -14,6 +14,9 @@ import os
 import sqlite3
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY")
 if not FRED_API_KEY:
@@ -27,7 +30,7 @@ FRED_MAP = {
     "Real GDP Growth Rate (annualized)": "A191RL1Q225SBEA",
     "Nominal GDP": "GDP",
     "Unemployment Rate": "UNRATE",
-    "Nonfarm Payroll Employment Change": "PAYEMS",       # note: level, not monthly change
+    "Nonfarm Payroll Employment Change": "PAYEMS",        # note: level, not monthly change
     "Labor Force Participation Rate": "CIVPART",
     "Average Hourly Earnings (YoY)": "CES0500000003",     # level; compute YoY yourself
     "CPI Inflation Rate (headline, YoY)": "CPIAUCSL",     # level; compute YoY yourself
@@ -59,35 +62,56 @@ def fetch_latest(series_id: str):
     return obs["date"], obs["value"]
 
 
+def init_db(cur: sqlite3.Cursor):
+    """Ensure table structure exists before updating."""
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS indicators (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            indicator_name TEXT UNIQUE NOT NULL,
+            value REAL,
+            display_value TEXT,
+            reference_period TEXT,
+            retrieved_at TEXT
+        )
+        """
+    )
+
+
 def main():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+    
+    # Ensure table and schema exist
+    init_db(cur)
+
     retrieved_at = datetime.now().strftime("%Y-%m-%d")
 
     for indicator_name, series_id in FRED_MAP.items():
         try:
             date, value = fetch_latest(series_id)
         except Exception as e:
-            print(f"  FAILED  {indicator_name} ({series_id}): {e}")
+            print(f"  FAILED   {indicator_name} ({series_id}): {e}")
             continue
 
+        # UPSERT: Inserts new indicators or updates existing ones
         cur.execute(
             """
-            UPDATE indicators
-            SET value = ?,
-                display_value = ?,
-                reference_period = ?,
-                retrieved_at = ?
-            WHERE indicator_name = ?
+            INSERT INTO indicators (indicator_name, value, display_value, reference_period, retrieved_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(indicator_name) DO UPDATE SET
+                value = excluded.value,
+                display_value = excluded.display_value,
+                reference_period = excluded.reference_period,
+                retrieved_at = excluded.retrieved_at
             """,
-            (value, value, date, retrieved_at, indicator_name),
+            (indicator_name, value, value, date, retrieved_at),
         )
-        print(f"  OK      {indicator_name}: {value} (as of {date})")
+        print(f"  OK       {indicator_name}: {value} (as of {date})")
 
     conn.commit()
     conn.close()
     print("Done.")
-
 
 if __name__ == "__main__":
     main()

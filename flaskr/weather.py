@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 from dotenv import load_dotenv
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, jsonify, render_template, request, current_app
 from flaskr.db import get_db
 from flaskr.blog import create_post
 
@@ -136,6 +136,32 @@ def weather():
         cities=cities_list, 
         selected_city=selected_city
     )
+
+@bp.route('/api/latest-temp')
+def latest_temp():
+    location = os.environ.get("CURRENT_LOCATION")
+    db = get_db()
+    
+    row = db.execute(
+        "SELECT temperature FROM chart WHERE location = ? ORDER BY created_at DESC LIMIT 1",
+        (location,)
+    ).fetchone()
+    
+    temp = f"{row['temperature']}°" if row and row['temperature'] is not None else "N/A"
+    return jsonify({"temperature": temp})
+
+@bp.route('/api/latest-humidity')
+def latest_humidity():
+    location = os.environ.get("CURRENT_LOCATION")
+    db = get_db()
+    
+    row = db.execute(
+        "SELECT humidity FROM chart WHERE location = ? ORDER BY created_at DESC LIMIT 1",
+        (location,)
+    ).fetchone()
+    
+    humidity = f"{row['humidity']}" if row and row['humidity'] is not None else "N/A"
+    return jsonify({"humidity": humidity})
 
 index = weather
 

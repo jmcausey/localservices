@@ -16,3 +16,4 @@ pandas
 SQLAlchemy
 
 scapy
+jsonify
