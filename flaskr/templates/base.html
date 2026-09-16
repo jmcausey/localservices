@@ -1,12 +1,14 @@
-  <!doctype html>
+<!doctype html>
+<html>
 <head>
-<meta http-equiv="refresh" content="900">
+  <meta http-equiv="refresh" content="900">
+  <title>{% block title %}{% endblock %} - Local</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<title>{% block title %}{% endblock %} - Local</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<body>
 
 <nav class="navbar">  
-  <!-- Left-aligned links grouped in a single list -->
+  <!-- Left-aligned links -->
   <ul class="nav-left">
     <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
     <li><a href="{{ url_for('weather.weather') }}">Weather</a></li>
@@ -16,17 +18,26 @@
 
   <!-- Right-aligned items -->
   <div class="nav-right">
+    <!-- Separate weather list so it aligns horizontally -->
+    <ul class="weather-metrics">
+      <li><span class="weather-badge">temp: <span id="nav-temp-display">--</span></span></li>
+      <li><span class="weather-badge">humidity: <span id="nav-humidity-display">--</span>%</span></li>
+      <li><span class="weather-badge">wind: <span id="nav-windspeed-display">--</span> mph</span></li>
+      <li><span class="weather-badge">dir: <span id="nav-winddir-display">--</span></span></li>
+    </ul>
+
     <ul class="user-actions">
-      <li><span id="nav-temp-display" class="weather-badge">--°</span></li>
-      <li><span id="nav-humidity-display" class="weather-badge">--</span></li>
       {% if g.user %}
         <li><span>{{ g.user['username'] }}</span></li>
         <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
       {% else %}
-        <li><a href="{{ url_for('auth.register') }}">Register</a></li>
-        <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
+        <ul>
+          <li><a href="{{ url_for('auth.register') }}">Register</a></li>
+          <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
+        </ul>
       {% endif %}
     </ul>
+    
     <ul class="clock-container">
       <li id="live-clock">--:--:-- --</li>
     </ul>
@@ -56,44 +67,73 @@
     document.getElementById('live-clock').textContent = timeString;
   }
   
-  updateClock(); // Initial call to avoid startup delay
-  setInterval(updateClock, 1000); // Refresh every second
+  updateClock();
+  setInterval(updateClock, 1000);
 </script>
 
+<!-- Live Weather Metrics Script -->
 <script>
-function fetchNavHumidity() {
-  fetch("/api/latest-humidity") // Use direct path if JS is in an external static file
-    .then(response => response.json())
-    .then(data => {
-      const humidityElement = document.getElementById("nav-humidity-display");
-      // Explicitly check for null/undefined instead of truthy
-      if (humidityElement && data.humidity !== undefined && data.humidity !== null) {
-        humidityElement.textContent = data.humidity;
-      }
-    })
-    .catch(err => console.error("Error fetching humidity:", err));
+function getCardinalDirection(degrees) {
+  const angle = Number(degrees);
+  if (isNaN(angle)) return "N/A";
+  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const index = Math.round(angle / 45) % 8;
+  return directions[index];
 }
 
 function fetchNavTemperature() {
   fetch("/api/latest-temp")
-    .then(response => response.json())
+    .then(res => res.json())
     .then(data => {
-      const tempElement = document.getElementById("nav-temp-display");
-      if (tempElement && data.temperature !== undefined && data.temperature !== null) {
-        tempElement.textContent = data.temperature;
-      }
+      const el = document.getElementById("nav-temp-display");
+      if (el && data.temperature != null) el.textContent = data.temperature;
     })
-    .catch(err => console.error("Error fetching temperature:", err));
+    .catch(err => console.error("Error fetching temp:", err));
 }
 
-// Fetch both metrics on page load and set interval
-document.addEventListener("DOMContentLoaded", () => {
+function fetchNavHumidity() {
+  fetch("/api/latest-humidity")
+    .then(res => res.json())
+    .then(data => {
+      const el = document.getElementById("nav-humidity-display");
+      if (el && data.humidity != null) el.textContent = data.humidity;
+    })
+    .catch(err => console.error("Error fetching humidity:", err));
+}
+
+function fetchNavWindspeed() {
+  fetch("/api/latest-windspeed")
+    .then(res => res.json())
+    .then(data => {
+      const el = document.getElementById("nav-windspeed-display");
+      if (el && data.windspeed != null) el.textContent = data.windspeed;
+    })
+    .catch(err => console.error("Error fetching windspeed:", err));
+}
+
+function fetchNavWindDirection() {
+  fetch("/api/latest-wind-direction")
+    .then(res => res.json())
+    .then(data => {
+      const el = document.getElementById("nav-winddir-display");
+      if (el && data.wind_degrees != null) {
+        el.textContent = getCardinalDirection(data.wind_degrees);
+      }
+    })
+    .catch(err => console.error("Error fetching wind direction:", err));
+}
+
+function refreshAllMetrics() {
   fetchNavTemperature();
   fetchNavHumidity();
-  
-  setInterval(() => {
-    fetchNavTemperature();
-    fetchNavHumidity();
-  }, 15 * 60 * 1000);
+  fetchNavWindspeed();
+  fetchNavWindDirection();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  refreshAllMetrics();
+  setInterval(refreshAllMetrics, 15 * 60 * 1000);
 });
 </script>
+</body>
+</html>

@@ -163,6 +163,33 @@ def latest_humidity():
     humidity = f"{row['humidity']}" if row and row['humidity'] is not None else "N/A"
     return jsonify({"humidity": humidity})
 
+@bp.route('/api/latest-windspeed')
+def latest_windspeed():
+    location = os.environ.get("CURRENT_LOCATION")
+    db = get_db()
+    
+    row = db.execute(
+        "SELECT windspeed FROM chart WHERE location = ? ORDER BY created_at DESC LIMIT 1",
+        (location,)
+    ).fetchone()
+    
+    windspeed = f"{row['windspeed']}" if row and row['windspeed'] is not None else "N/A"
+    return jsonify({"windspeed": windspeed})
+
+@bp.route('/api/latest-wind-direction')
+def latest_wind_direction():
+    location = os.environ.get("CURRENT_LOCATION", "DefaultCity")
+    db = get_db()
+    
+    # Adjust column name to match your database schema (e.g., wind_direction or wind_degrees)
+    row = db.execute(
+        "SELECT winddirection FROM chart WHERE location = ? ORDER BY created_at DESC LIMIT 1",
+        (location,)
+    ).fetchone()
+    
+    degrees = row['winddirection'] if row and row['winddirection'] is not None else None
+    return jsonify({"wind_degrees": degrees})
+
 index = weather
 
 if __name__ == "__main__":

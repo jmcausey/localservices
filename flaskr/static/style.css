@@ -44,34 +44,35 @@ nav th, nav td,
   padding: 10px 0;
 }
 
+.nav-left h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* Nav groups laying out horizontally */
 .nav-left,
 .nav-right,
+.weather-metrics,
+.user-actions,
 .clock-container {
   display: flex;
+  flex-direction: row;
   align-items: center;
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 15px;
-}
-
-.user-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 4px;
+  gap: 0.75rem;
 }
 
 .nav-right {
   margin-left: auto;
+  gap: 1.5rem;
 }
 
-.nav-left h1 {
-  margin: 0;
-  font-size: 1.5rem;
+/* Styling for weather badge tags */
+.weather-badge {
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 /* Container for aligned buttons */
