@@ -190,6 +190,11 @@ def latest_wind_direction():
     degrees = row['winddirection'] if row and row['winddirection'] is not None else None
     return jsonify({"wind_degrees": degrees})
 
+@bp.route('/api/current-location')
+def current_location():
+    location = os.environ.get("CURRENT_LOCATION", "Unknown Location")
+    return jsonify({"location": location})
+
 index = weather
 
 if __name__ == "__main__":

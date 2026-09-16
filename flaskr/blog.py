@@ -184,3 +184,14 @@ def change_status(id, new_status):
 
     flash(f"Status updated to '{new_status}'.")
     return redirect(url_for('blog.index'))
+
+@bp.route('/api/latest-post-id')
+def latest_post_id():
+    db = get_db()
+    # Query for the single most recent post ID
+    row = db.execute(
+        'SELECT id FROM post ORDER BY created DESC LIMIT 1'
+    ).fetchone()
+    
+    latest_id = row['id'] if row else 0
+    return jsonify({"latest_id": latest_id})

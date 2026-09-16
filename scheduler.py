@@ -28,7 +28,7 @@ app = create_app()
 @repeat(every().hour)
 def weather_update():
     fetch_weather()
-    post_weather_updates_from_db(app, author_id=1)
+    #post_weather_updates_from_db(app, author_id=1)
 
 @repeat(every().day.at("06:00"))
 def nasa_apod():
@@ -42,14 +42,15 @@ def daily_astronomy_update():
 
 if __name__ == "__main__":
     # Run once immediately on startup wrapped safely
-    try:
-        weather_update()  # Uncomment when ready to test weather on startup
-        nasa_apod()
-        daily_astronomy_update()
-    except Exception as e:
-        print(f"Error during initial startup run: {e}")
-
+    #try:
+    #    weather_update()  # Uncomment when ready to test weather on startup
+    #    nasa_apod()
+    #    daily_astronomy_update()
+    #except Exception as e:
+    #    print(f"Error during initial startup run: {e}")
+    print("scheduler started")
     # Hand over control to schedule loop
+    post_weather_updates_from_db(app,author_id=1)
     while True:
         run_pending()
         time.sleep(1)

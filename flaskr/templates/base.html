@@ -10,7 +10,10 @@
 <nav class="navbar">  
   <!-- Left-aligned links -->
   <ul class="nav-left">
+    <ul>
     <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
+    <li><span class="weather-badge"><span id="nav-location-display">--</span></span></li>
+    </ul>
     <li><a href="{{ url_for('weather.weather') }}">Weather</a></li>
     <li><a href="{{ url_for('network.network') }}">Network</a></li>
     <li><a href="{{ url_for('astronomy.astronomy_table') }}">Astronomy</a></li>
@@ -123,11 +126,24 @@ function fetchNavWindDirection() {
     .catch(err => console.error("Error fetching wind direction:", err));
 }
 
+function fetchNavLocation() {
+  fetch("/api/current-location")
+    .then(res => res.json())
+    .then(data => {
+      const el = document.getElementById("nav-location-display");
+      if (el && data.location != null) {
+        el.textContent = data.location;
+      }
+    })
+    .catch(err => console.error("Error fetching location:", err));
+}
+
 function refreshAllMetrics() {
   fetchNavTemperature();
   fetchNavHumidity();
   fetchNavWindspeed();
   fetchNavWindDirection();
+  fetchNavLocation();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
