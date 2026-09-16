@@ -1,6 +1,6 @@
 import os
 from flask import (
-    Blueprint, current_app, flash, g, redirect, render_template, request, url_for
+    Blueprint, jsonify, current_app, flash, g, redirect, render_template, request, url_for
 )
 from werkzeug.exceptions import abort
 from werkzeug.utils import secure_filename
