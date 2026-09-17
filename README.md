@@ -37,15 +37,19 @@
    cd localservices
 
 2. **Install dependancies:**
+   ```bash 
    pip install -r requirements.txt
 
 3. **Initialize the database:**
+   ```bash 
    flask --app flaskr init-db
 
 4. **Run the flask application:**
+   ```bash 
    flask --app flaskr run
 
 5. **Start background task automation:**
+   ```bash
    python scheduler.py
 
 ## Credits
