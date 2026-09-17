@@ -25,7 +25,7 @@
 | :--- | :--- |
 | `flaskr/` | Core application factory, database models, and authentication blueprint |
 | `flaskr/blog.py` | Blueprint routing for post lifecycle management, API endpoints, and audio streaming |
-| `flaskr/scraper/` | Modular web scraping scripts for Craigslist, Informatics, and KevinMD |
+| `flaskr/scraper/` | Modular web scraping scripts  |
 | `flaskr/templates/` | Jinja2 templates (standard, scrolling teleprompter, and audio kiosk layouts) |
 | `scheduler.py` | Background execution script for scheduled task windows |
 
