@@ -4,8 +4,8 @@
 
 ## Core Features
 
-* **Automated Scrapers (`flaskr/scraper/`):** Targeted extraction modules for East Texas Free Stuff (`cat=zip`), Athens-area Craigslist surfboards (100-mile radius), Informatics Inc., and KevinMD Tech. Enforces strict filtering by excluding "modem" keywords and pruning posts older than 24 hours.
-* **Background Task Automation (`scheduler.py`):** Multi-run execution orchestrator triggering ingestion pipelines and astronomy data publishing twice daily at 08:00 and 20:00.
+* **Automated Scrapers (`flaskr/scraper/`):** Targeted extraction modules for online posts and pruning posts older than 24 hours.
+* **Background Task Automation (`scheduler.py`):** Multi-run execution orchestrator triggering ingestion pipelines.
 * **Live Polling Dashboard (`/`):** Real-time feed monitoring that polls `/api/latest-post-id` every 10 seconds to auto-refresh upon new database insertions.
 * **Teleprompter Feed (`/scrolling`):** Locked-viewport continuous vertical scrolling container with interactive hover-to-pause controls.
 * **Audio Kiosk Reader (`/kiosk`):** Single-post presentation view utilizing on-the-fly `gTTS` audio streaming via `/audio/<id>`, a 10-second post-playback pause, and automated carousel rotation.
