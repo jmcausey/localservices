@@ -36,6 +36,18 @@
    git clone [https://github.com/jmcausey/localservices.git](https://github.com/jmcausey/localservices.git)
    cd localservices
 
+2. **Install dependancies:**
+   pip install -r requirements.txt
+
+3. **Initialize the database:**
+   flask --app flaskr init-db
+
+4. **Run the flask application:**
+   flask --app flaskr run
+
+5. **Start background task automation:**
+   python scheduler.py
+
 ## Credits
 
    Platform architecture and automation logic co-developed by Gemini, built on open-source foundations provided by the Python Software Foundation, Pallets (Flask), SQLite, BeautifulSoup, and gTTS.
