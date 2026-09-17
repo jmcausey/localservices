@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  {% if g.user %}
+    <a class="action" href="{{ url_for('blog.create') }}">New</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+  body {
+    overflow: hidden;
+  }
+  .kiosk-container {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 20px;
+    height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .kiosk-post {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  .kiosk-status {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+    text-transform: capitalize;
+  }
+</style>
+
+<div class="kiosk-container">
+  <div id="kiosk-post-display" class="kiosk-post">
+    <p>Loading posts...</p>
+  </div>
+</div>
+
+<script>
+// Serialize Flask posts into a JavaScript array
+const posts = {{ posts | tojson }};
+let currentIndex = 0;
+
+function stripHtml(html) {
+  let tmp = document.createElement("DIV");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+}
+
+function playNextPost() {
+  if (!posts || posts.length === 0) {
+    document.getElementById("kiosk-post-display").innerHTML = "<p>No posts available.</p>";
+    return;
+  }
+
+  const post = posts[currentIndex];
+  
+  // Render single post
+  const displayArea = document.getElementById("kiosk-post-display");
+  displayArea.innerHTML = `
+    <div class="kiosk-status">
+      Post ${currentIndex + 1} of ${posts.length} | by ${post.username || 'Anonymous'} | Status: ${post.status}
+    </div>
+    <h1>${post.title}</h1>
+    <hr style="margin: 15px 0;">
+    <div class="body" style="font-size: 1.1rem; line-height: 1.6;">${post.body}</div>
+  `;
+
+  // Combine title and stripped body text for speech synthesis
+  const plainBody = stripHtml(post.body);
+  const textToRead = `${post.title}. ${plainBody}`;
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.rate = 1.0;
+
+    utterance.onend = function() {
+      // Finished reading; pause for 10 seconds then advance to the next post
+      setTimeout(() => {
+        currentIndex = (currentIndex + 1) % posts.length;
+        playNextPost();
+      }, 10000);
+    };
+
+    utterance.onerror = function() {
+      // Fallback timer if speech synthesis fails
+      setTimeout(() => {
+        currentIndex = (currentIndex + 1) % posts.length;
+        playNextPost();
+      }, 10000);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  } else {
+    // Fallback if speech API is unavailable
+    setTimeout(() => {
+      currentIndex = (currentIndex + 1) % posts.length;
+      playNextPost();
+    }, 15000);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (posts && posts.length > 0) {
+    playNextPost();
+  } else {
+    document.getElementById("kiosk-post-display").innerHTML = "<p>No posts found.</p>";
+  }
+});
+</script>
+{% endblock %}
