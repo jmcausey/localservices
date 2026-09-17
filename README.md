@@ -35,3 +35,5 @@
    ```bash
    git clone [https://github.com/jmcausey/localservices.git](https://github.com/jmcausey/localservices.git)
    cd localservices
+
+   Platform architecture and automation logic co-developed by Gemini, built on open-source foundations provided by the Python Software Foundation, Pallets (Flask), SQLite, BeautifulSoup, and gTTS.
