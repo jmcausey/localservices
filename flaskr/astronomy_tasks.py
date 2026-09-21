@@ -245,7 +245,7 @@ def time_to_rad(time_str: str | None) -> float:
     except (ValueError, IndexError):
         return 0.0
 
-def generate_celestial_dial(db_path: str = DATABASE, output_dir: str = "~/local/flaskr/static/media") -> str | None:
+def generate_celestial_dial(db_path: str = DATABASE, output_dir: str = "~/local/media/astronomy_graphs/celestial") -> str | None:
     """Generates and saves a 24-hour polar solar and lunar cycle chart directly to Flask's static media folder."""
     try:
         data = fetch_latest_astronomy_data(db_path)

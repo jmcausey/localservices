@@ -45,6 +45,10 @@ def create_app(test_config=None):
     from . import astronomy
     app.register_blueprint(astronomy.bp)
 
+    # Register the new control blueprint
+    from . import control
+    app.register_blueprint(control.bp)
+
     # Point the root URL ('/') directly to the weather index view
     app.add_url_rule('/', endpoint='index', view_func=weather.index)
 

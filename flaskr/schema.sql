@@ -122,3 +122,11 @@ CREATE TABLE IF NOT EXISTS astronomy (
   moon_illumination_percentage REAL,
   moon_angle REAL
 );
+
+CREATE TABLE search_query (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    term TEXT NOT NULL,
+    radius INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

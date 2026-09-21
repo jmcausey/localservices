@@ -1,0 +1,62 @@
+Here is an itemized, object-oriented structural breakdown of flaskr/templates/blog/update.html.
+
+### **Object: BlogUpdateView**
+
+A derived template view inheriting from BaseLayout ({% extends 'base.html' %}) responsible for providing an interface to edit existing blog post attributes, update media, change state status, or permanently delete a post.
+
+#### **Properties & State Injection**
+
+* **post**: Dictionary/Object representing the existing database record (contains id, title, body, status, etc.).  
+* **request.form**: Flask request state used to retain user inputs if server-side validation fails.
+
+#### **Parent View Injections**
+
+* **HeaderBlock**: Overrides {% block header %}.  
+* **ContentBlock**: Overrides {% block content %}.
+
+### **Object: HeaderBlock**
+
+The header component injected into the base layout's header region.
+
+#### **Components**
+
+* **TitleHeader**: \<h1\> containing nested Jinja2 {% block title %} displaying "Edit \\"\<post.title\>\\"". Configures both the page heading and browser tab title context.
+
+### **Object: ContentBlock**
+
+The primary viewport component hosting the update mutation form, status selection, media replacement input, horizontal separator, and destructive deletion form.
+
+#### **1\. Form Component: PostUpdateForm**
+
+The primary multipart form handling update mutations for an existing post.
+
+* **Attributes:**  
+  * **method**: POST (Posts to current URL endpoint by default).  
+  * **enctype**: multipart/form-data (Supports uploading replacement image binaries).  
+* **Inputs & Controls:**  
+  * **TitleField**: \<input type="text" name="title" id="title"\>  
+    * **Fallback Value Logic:** Evaluates request.form\['title'\] first (unsubmitted form retry), falling back to post\['title'\] (database record).  
+    * **Validation:** required attribute enabled.  
+  * **StatusDropdown**: \<select name="status" id="status"\>  
+    * **Options:** 'new', 'pending', 'complete'.  
+    * **State Logic:** Dynamically sets selected attribute by evaluating (request.form\['status'\] or post\['status'\]) \== '\<value\>'.  
+  * **BodyField**: \<textarea name="body" id="body"\>  
+    * **Fallback Value Logic:** Renders request.form\['body'\] or post\['body'\].  
+  * **ImageReplaceField**: \<input type="file" name="image" id="image"\>  
+    * **Constraints:** accept="image/\*" restricts file selection to image MIME types.  
+  * **SubmitButton**: \<input type="submit" value="Save Changes"\>
+
+#### **2\. Component: SectionDivider**
+
+* Standard \<hr\> element visually isolating edit operations from destructive actions.
+
+#### **3\. Form Component: PostDeleteForm**
+
+A standalone form handling record deletion to prevent accidental CSRF/GET execution.
+
+* **Attributes:**  
+  * **action**: url\_for('blog.delete', id=post\['id'\])  
+  * **method**: POST  
+* **Inputs & Actions:**  
+  * **DeleteButton**: \<input class="danger" type="submit" value="Delete Post"\>  
+    * **Event Binding:** onclick="return confirm('Are you sure?');" triggers a browser native modal prompt to guard against accidental deletion.

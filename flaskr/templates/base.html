@@ -4,46 +4,131 @@
   <meta http-equiv="refresh" content="900">
   <title>{% block title %}{% endblock %} - Local</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .navbar {
+      display: flex;
+      flex-direction: column;
+      background-color: #1a202c;
+      color: #fff;
+    }
+    .nav-top-row, .nav-bottom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 1rem;
+    }
+    .nav-top-row {
+      border-bottom: 1px solid #2d3748;
+    }
+    .nav-left, .nav-sub-right, .weather-metrics, .user-actions, .clock-container, .nav-bottom-right {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      gap: 1rem;
+    }
+    .nav-left h1 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .nav-left a, .nav-sub-right a, .user-actions a {
+      color: #cbd5e0;
+      text-decoration: none;
+    }
+    .nav-left a:hover, .nav-sub-right a:hover, .user-actions a:hover {
+      color: #fff;
+    }
+    .nav-left li.active > a {
+      color: #63b3ed;
+      font-weight: bold;
+    }
+    .nav-sub-right {
+      font-size: 0.9rem;
+    }
+    .weather-badge {
+      background: #2d3748;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+  </style>
 </head>
 <body>
 
 <nav class="navbar">  
-  <!-- Left-aligned links -->
-  <ul class="nav-left">
-    <ul>
-    <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
-    <li><span class="weather-badge"><span id="nav-location-display">--</span></span></li>
+  <!-- Row 1: Primary Links + Inline Horizontal Sub-Navigation -->
+  <div class="nav-top-row">
+    <ul class="nav-left">
+      <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
+      <li class="{% if request.endpoint and request.endpoint.startswith('control.') %}active{% endif %}">
+        <a href="{{ url_for('control.control_panel') }}">Control Panel</a>
+      </li>
+      <li class="{% if request.endpoint and request.endpoint.startswith('weather.') %}active{% endif %}">
+        <a href="{{ url_for('weather.weather') }}">Weather</a>
+      </li>
+      <li class="{% if request.endpoint and request.endpoint.startswith('network.') %}active{% endif %}">
+        <a href="{{ url_for('network.network') }}">Network</a>
+      </li>
+      <li class="{% if request.endpoint and request.endpoint.startswith('astronomy.') %}active{% endif %}">
+        <a href="{{ url_for('astronomy.astronomy_table') }}">Astronomy</a>
+      </li>
     </ul>
-    <li><a href="{{ url_for('weather.weather') }}">Weather</a></li>
-    <li><a href="{{ url_for('network.network') }}">Network</a></li>
-    <li><a href="{{ url_for('astronomy.astronomy_table') }}">Astronomy</a></li>
-  </ul>
 
-  <!-- Right-aligned items -->
-  <div class="nav-right">
-    <!-- Separate weather list so it aligns horizontally -->
+    <!-- Horizontal Sub-navigation on the right side of Row 1 -->
+    <ul class="nav-sub-right">
+      {% if request.endpoint and request.endpoint.startswith('weather.') %}
+        <li><a href="{{ url_for('weather.weather') }}">Current Radar</a></li>
+        <li><a href="#">Forecast</a></li>
+        <li><a href="#">Historical Data</a></li>
+
+      {% elif request.endpoint and request.endpoint.startswith('network.') %}
+        <li><a href="{{ url_for('network.network') }}">Devices</a></li>
+        <li><a href="#">Bandwidth</a></li>
+        <li><a href="#">Port Status</a></li>
+
+      {% elif request.endpoint and request.endpoint.startswith('control.') %}
+        <li><a href="{{ url_for('control.control_panel') }}">Scraper Tasks</a></li>
+        <li><a href="#">System Logs</a></li>
+        <li><a href="#">Settings</a></li>
+
+      {% elif request.endpoint and request.endpoint.startswith('astronomy.') %}
+        <li><a href="{{ url_for('astronomy.astronomy_table') }}">Sky Chart</a></li>
+        <li><a href="#">Moon Phases</a></li>
+        <li><a href="#">ISS Tracker</a></li>
+
+      {% else %}
+        <li><a href="{{ url_for('index') }}">Overview</a></li>
+      {% endif %}
+    </ul>
+  </div>
+
+  <!-- Row 2: Weather Badges, User Actions, and Clock -->
+  <div class="nav-bottom-row">
     <ul class="weather-metrics">
+      <li><span class="weather-badge"><span id="nav-location-display">--</span></span></li>
       <li><span class="weather-badge">temp: <span id="nav-temp-display">--</span></span></li>
       <li><span class="weather-badge">humidity: <span id="nav-humidity-display">--</span>%</span></li>
       <li><span class="weather-badge">wind: <span id="nav-windspeed-display">--</span> mph</span></li>
       <li><span class="weather-badge">dir: <span id="nav-winddir-display">--</span></span></li>
     </ul>
 
-    <ul class="user-actions">
-      {% if g.user %}
-        <li><span>{{ g.user['username'] }}</span></li>
-        <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
-      {% else %}
-        <ul>
+    <div class="nav-bottom-right">
+      <ul class="user-actions">
+        {% if g.user %}
+          <li><span>{{ g.user['username'] }}</span></li>
+          <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+        {% else %}
           <li><a href="{{ url_for('auth.register') }}">Register</a></li>
           <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
-        </ul>
-      {% endif %}
-    </ul>
-    
-    <ul class="clock-container">
-      <li id="live-clock">--:--:-- --</li>
-    </ul>
+        {% endif %}
+      </ul>
+      
+      <ul class="clock-container">
+        <li id="live-clock">--:--:-- --</li>
+      </ul>
+    </div>
   </div>
 </nav>
 

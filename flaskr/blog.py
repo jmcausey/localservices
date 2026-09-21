@@ -89,9 +89,11 @@ def create_post(title, body, author_id, status='new', image_file=None):
 @bp.route('/')
 def index():
     db = get_db()
+    # Filter out posts older than 1 day unless their status is 'pending'
     raw_posts = db.execute(
         'SELECT p.id, title, body, status, created, author_id, username'
         ' FROM post p JOIN user u ON p.author_id = u.id'
+        ' WHERE datetime(created) >= datetime(\'now\', \'-1 day\') OR status = \'pending\''
         ' ORDER BY created DESC'
     ).fetchall()
     
@@ -115,14 +117,12 @@ def scrolling_view():
 @bp.route('/kiosk')
 def kiosk_view():
     db = get_db()
-    raw_posts = db.execute(
-        'SELECT p.id, title, body, status, created, author_id, username'
-        ' FROM post p JOIN user u ON p.author_id = u.id'
-        ' ORDER BY created DESC'
-    ).fetchall()
-    
-    posts = [decode_post_bytes(p) for p in raw_posts]
-    return render_template('blog/index_speak_scroll.html', posts=posts)
+    posts = db.execute('SELECT * FROM post').fetchall()
+
+    # Convert sqlite3.Row items to standard Python dictionaries
+    posts_dict = [dict(post) for post in posts]
+
+    return render_template('blog/index_speak_scroll.html', posts=posts_dict)
 
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -231,3 +231,4 @@ def get_post_audio(id):
     fp.seek(0)
 
     return send_file(fp, mimetype='audio/mpeg')
+

@@ -19,6 +19,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    position: relative;
   }
   .kiosk-post {
     background: #fff;
@@ -34,16 +35,50 @@
     margin-bottom: 10px;
     text-transform: capitalize;
   }
+  .start-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    z-index: 10;
+  }
+  .start-btn {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #3182ce;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .start-btn:hover {
+    background-color: #2b6cb0;
+  }
 </style>
 
 <div class="kiosk-container">
+  <div id="start-overlay" class="start-overlay">
+    <h2>Kiosk Mode Ready</h2>
+    <p style="margin-bottom: 1.5rem; color: #4a5568;">Click below to enable automatic audio narration.</p>
+    <button id="start-btn" class="start-btn">Start Kiosk Presentation</button>
+  </div>
+
   <div id="kiosk-post-display" class="kiosk-post">
     <p>Loading posts...</p>
   </div>
 </div>
 
 <script>
-// Serialize Flask posts into a JavaScript array
+// Parse serialized JSON posts
 const posts = {{ posts | tojson }};
 let currentIndex = 0;
 
@@ -61,54 +96,85 @@ function playNextPost() {
 
   const post = posts[currentIndex];
   
-  // Render single post
+  // Render current post content
   const displayArea = document.getElementById("kiosk-post-display");
   displayArea.innerHTML = `
     <div class="kiosk-status">
-      Post ${currentIndex + 1} of ${posts.length} | by ${post.username || 'Anonymous'} | Status: ${post.status}
+      Post ${currentIndex + 1} of ${posts.length} | by ${post.username || 'Anonymous'} | Status: ${post.status || 'Active'}
     </div>
     <h1>${post.title}</h1>
     <hr style="margin: 15px 0;">
     <div class="body" style="font-size: 1.1rem; line-height: 1.6;">${post.body}</div>
   `;
 
-  // Combine title and stripped body text for speech synthesis
-  const plainBody = stripHtml(post.body);
-  const textToRead = `${post.title}. ${plainBody}`;
+  // Prepare text for SpeechSynthesis
+  const plainBody = stripHtml(post.body).replace(/\s+/g, ' ').trim();
+  let textToRead = `${post.title}. ${plainBody}`.trim();
+
+  if (!textToRead) {
+    setTimeout(() => {
+      currentIndex = (currentIndex + 1) % posts.length;
+      playNextPost();
+    }, 3000);
+    return;
+  }
+
+  // Truncate long strings to prevent browser SpeechSynthesis engine crashes
+  const maxChars = 300;
+  if (textToRead.length > maxChars) {
+    textToRead = textToRead.substring(0, maxChars) + "...";
+  }
 
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.rate = 1.0;
+    // Delay slight execution to allow audio engine cancel state to clear
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.rate = 1.0;
 
-    utterance.onend = function() {
-      // Finished reading; pause for 10 seconds then advance to the next post
-      setTimeout(() => {
-        currentIndex = (currentIndex + 1) % posts.length;
-        playNextPost();
-      }, 10000);
-    };
+      // Assign English voice if available
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        utterance.voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+      }
 
-    utterance.onerror = function() {
-      // Fallback timer if speech synthesis fails
-      setTimeout(() => {
-        currentIndex = (currentIndex + 1) % posts.length;
-        playNextPost();
-      }, 10000);
-    };
+      utterance.onend = function() {
+        setTimeout(() => {
+          currentIndex = (currentIndex + 1) % posts.length;
+          playNextPost();
+        }, 5000);
+      };
 
-    window.speechSynthesis.speak(utterance);
+      utterance.onerror = function(event) {
+        console.warn("Speech Synthesis Error details:", event.error);
+        setTimeout(() => {
+          currentIndex = (currentIndex + 1) % posts.length;
+          playNextPost();
+        }, 5000);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }, 100);
   } else {
-    // Fallback if speech API is unavailable
+    // Fallback timer if Speech API is unsupported
     setTimeout(() => {
       currentIndex = (currentIndex + 1) % posts.length;
       playNextPost();
-    }, 15000);
+    }, 10000);
   }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+// Populate voices list when available
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
+
+// Start presentation on user click
+document.getElementById("start-btn").addEventListener("click", () => {
+  document.getElementById("start-overlay").style.display = "none";
   if (posts && posts.length > 0) {
     playNextPost();
   } else {
