@@ -17,3 +17,7 @@ SQLAlchemy
 
 scapy
 jsonify
+pdoc
+sphinx
+mkdocs
+mkdocs-material

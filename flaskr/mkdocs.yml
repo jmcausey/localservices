@@ -1,0 +1,7 @@
+site_name: localservices
+
+# Delete or modify this line if your folder is named exactly "docs"
+docs_dir: 'docs' 
+
+theme:
+  name: 'material' # Use 'readthedocs' or delete this line to use the default theme
