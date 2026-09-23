@@ -13,16 +13,20 @@ if str(flaskr_dir) not in sys.path:
     sys.path.append(str(flaskr_dir))
 
 # Import application factory and task functions
+from flaskr import create_app, get_db
 from scrapers.kevinmd import run_scraper as kevinmd_scraper
 from scrapers.informaticsinc import run_scraper as informaticsinc
 from scrapers.cl_surfboards import run_scraper as clsurfboards
 from scrapers.cl_freestuff import run_scraper as clfreestuff
-from flaskr import create_app, get_db
-from weather_tasks import fetch_weather, post_weather_updates_from_db, graph1
+from weather_tasks import (
+    fetch_weather, 
+    post_weather_updates_from_db, 
+    graph1
+    )
 from astronomy_tasks import (
     post_apod_to_blog, 
     post_astronomy_data_to_blog
-)
+    )
 
 LOCATIONS_FILE = os.path.expanduser('~/local/data/locations/locations.json')
 CURRENT_LOCATION = os.environ.get("CURRENT_LOCATION")
