@@ -1,3 +1,40 @@
-site_name: localservices
+site_name: LocalServices
+site_description: Documentation for the LocalServices Flask application, scraping platform, and automation jobs.
+site_url: https://example.com/localservices
+repo_url: https://github.com/jmcausey/localservices
+repo_name: jmcausey/localservices
 
-docs_dir: flaskr/docs/
+docs_dir: flaskr/docs
+
+theme:
+  name: readthedocs
+  highlightjs: true
+
+nav:
+  - Home: index.md
+  - Application:
+      - Overview: '__init__.py.md'
+      - Authentication: 'auth.py.md'
+      - Blog and API: 'blog.py.md'
+      - Control: 'control.py.md'
+      - Database: 'db.py.md'
+      - Network: 'network.py.md'
+      - Scanner: 'scanner.py.md'
+  - Astronomy:
+      - Module: 'astronomy.py.md'
+      - Tasks: 'astronomy_tasks.md'
+  - Weather:
+      - Module: 'weather.py.md'
+      - Tasks: 'weather_task.py.md'
+  - Database:
+      - Schema: 'schema.sql.md'
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+  - tables
+
+plugins:
+  - search
