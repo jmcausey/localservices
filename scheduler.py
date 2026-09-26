@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 from schedule import repeat, every, run_pending
 from datetime import datetime
-from typing import Any
+from typing import Any, Tuple
 
 # Add ~/local/flaskr to Python path
 flaskr_dir = Path(__file__).resolve().parent / "flaskr"
@@ -20,12 +20,11 @@ from scrapers.kevinmd import run_scraper as kevinmd_scraper
 from scrapers.informaticsinc import run_scraper as informaticsinc
 from scrapers.cl_surfboards import run_scraper as clsurfboards
 from scrapers.cl_freestuff import run_scraper as clfreestuff
-from weather_tasks import (
+from flaskr.weather.tasks import ( 
     fetch_weather, 
-    post_weather_updates_from_db, 
-    graph1
-)
-from astronomy_tasks import (
+    post_weather_updates_from_db
+    )
+from flaskr.astronomy.tasks import (
     post_apod_to_blog, 
     post_astronomy_data_to_blog
 )
@@ -75,24 +74,29 @@ STARTUP_JOBS = [
 ]
 
 
-def execute_startup_jobs(option: Any = False):
+def execute_startup_jobs(option: Any = False) -> Tuple[bool, bool]:
     """
-    Executes startup jobs based on provided option parameter:
-      - False / None / "False": Runs no startup jobs.
-      - True / "all" / "True-All": Executes all registered startup jobs.
-      - int / list / tuple / str: Executes jobs matched by index or name.
+    Executes startup jobs based on provided option parameter.
+    
+    Returns:
+      (jobs_ran, is_standalone_run):
+        - jobs_ran: True if one or more jobs were executed.
+        - is_standalone_run: True if custom jobs were run and daemon loop should be bypassed.
     """
     if not option or option is False or str(option).lower() in ("false", "none", "0"):
         print("[Startup] No startup jobs requested.")
-        return
+        return False, False
 
     # Standardize string representations of 'True-All' or 'all'
     if option is True or str(option).strip().lower() in ("true", "true-all", "all"):
         target_indices = list(range(len(STARTUP_JOBS)))
+        is_standalone = False  # Running default daemon initialization sequence
     elif isinstance(option, int):
         target_indices = [option]
+        is_standalone = True
     elif isinstance(option, (list, tuple)):
         target_indices = option
+        is_standalone = True
     elif isinstance(option, str):
         # Parses comma-separated string choices like "0,2,4" or single integer strings "3"
         parts = [p.strip() for p in option.split(",")]
@@ -102,8 +106,10 @@ def execute_startup_jobs(option: Any = False):
                 target_indices.append(int(p))
             else:
                 target_indices.append(p)
+        is_standalone = True
     else:
         target_indices = [option]
+        is_standalone = True
 
     print(f"[{datetime.now()}] Running initial startup jobs...")
 
@@ -132,10 +138,11 @@ def execute_startup_jobs(option: Any = False):
             except Exception as e:
                 print(f"  [!] Error executing startup job '{job_name}': {e}")
 
+    return True, is_standalone
+
 
 def parse_arguments():
     """Parses command-line options and generates custom help descriptions."""
-    # Build dynamic job list for the help manual display
     job_catalog = "\n".join(
         f"    [{index}] {name}" for index, (name, _) in enumerate(STARTUP_JOBS)
     )
@@ -143,11 +150,11 @@ def parse_arguments():
     description = "Task Scheduler Daemon with optional startup job execution."
     epilog = f"""
 Startup Job Options (POSITIONAL or --startup):
-  False                  Skip all startup tasks (Default).
-  True / True-All / all  Run every registered startup task.
-  <index>                Run a specific job by numeric index (e.g., '2').
-  <index1,index2,...>    Run multiple specific jobs (e.g., '0,3,5').
-  <job_name>             Run job by string name (e.g., 'weather_update').
+  False                  Skip all startup tasks and enter scheduler loop (Default).
+  True / True-All / all  Run every registered startup task and enter scheduler loop.
+  <index>                Run specific job by index and exit (e.g., '2').
+  <index1,index2,...>    Run multiple specific jobs and exit (e.g., '0,3,5').
+  <job_name>             Run specific job by name and exit (e.g., 'weather_update').
 
 Registered Startup Jobs:
 {job_catalog}
@@ -156,8 +163,8 @@ Examples:
   python scheduler.py --help
   python scheduler.py False
   python scheduler.py True-All
-  python scheduler.py 3
-  python scheduler.py 0,2,4
+  python scheduler.py 2          (Runs post_apod_to_blog and exits)
+  python scheduler.py 0,2,4      (Runs jobs 0, 2, and 4 then exits)
   python scheduler.py --startup weather_update
 """
 
@@ -182,8 +189,6 @@ Examples:
     )
 
     args = parser.parse_args()
-
-    # Prioritize explicit --startup option over positional argument, defaulting to False
     startup_value = args.startup_opt or args.startup_pos or False
     return startup_value
 
@@ -192,9 +197,12 @@ if __name__ == "__main__":
     startup_arg = parse_arguments()
 
     try:
-        execute_startup_jobs(startup_arg)
+        jobs_ran, is_standalone = execute_startup_jobs(startup_arg)
+        if is_standalone:
+            print("Selected startup job(s) completed. Exiting.")
+            sys.exit(0)
     except Exception as e:
-        print(f"Error during initial startup run: {e}")
+        print(f"Error during startup execution: {e}")
 
     print('Starting scheduler loop...')
     daily_update()

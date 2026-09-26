@@ -7,6 +7,7 @@ import markupsafe
 from flask import current_app, g
 from flask.cli import with_appcontext
 
+
 def create_app(test_config=None):
     hostname = socket.gethostname()
     app = Flask(__name__, instance_relative_config=True)
@@ -50,7 +51,8 @@ def create_app(test_config=None):
     app.register_blueprint(control.bp)
 
     # Point the root URL ('/') directly to the weather index view
-    app.add_url_rule('/', endpoint='index', view_func=weather.index)
+    from .weather.routes import index
+    app.add_url_rule('/', endpoint='index', view_func=index)
 
     return app
 
