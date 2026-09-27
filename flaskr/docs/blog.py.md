@@ -50,7 +50,7 @@ Controller methods mapped to HTTP endpoints for rendering UI templates and handl
 
 #### **Root Feed Visibility**
 
-Craigslist listings are inserted into the `post` table with status `new` and a creation timestamp. On `/`, a post is visible while it is less than 24 hours old, unless it is `pending`, which remains visible regardless of age. A `complete` post is hidden immediately, even if it is less than 24 hours old. Changing status does not delete the row. The `/scrolling` and `/kiosk` routes currently query all posts without applying these root-feed visibility rules.
+Each scraped Craigslist item has a separate `craigslist_postings` record keyed by Craigslist's unique listing ID. A corresponding row in `post` is linked through `craigslist_postings.blog_post_id` and starts with status `new`. Pet-category posts are excluded from `/` and displayed at `/cl-pets`; both feeds show posts less than 24 hours old or any `pending` post, and always hide `complete` posts. Changing status does not delete either record. The `/scrolling` and `/kiosk` routes currently query all blog posts without applying these feed visibility rules.
 
 #### **4\. Route: create() (GET, POST /create)**
 

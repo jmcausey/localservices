@@ -76,6 +76,17 @@ def _insert_post_relative_to_now(app, title, status, age):
 		return cursor.lastrowid
 
 
+def _link_pet_listing(app, post_id, craigslist_id):
+	with app.app_context():
+		get_db().execute(
+			"INSERT INTO craigslist_postings "
+			"(craigslist_id, title, listing_url, category, blog_post_id) "
+			"VALUES (?, ?, ?, 'pet', ?)",
+			(craigslist_id, "Pet listing", f"https://craigslist.test/{craigslist_id}", post_id),
+		)
+		get_db().commit()
+
+
 def _log_in(client, user_id=1):
 	with client.session_transaction() as session:
 		session["user_id"] = user_id
@@ -114,6 +125,35 @@ def test_blog_feed_expires_posts_but_keeps_pending_and_hides_complete(client, ap
 	assert "Expired new" not in page
 	assert "Recent complete" not in page
 	assert "Expired complete" not in page
+
+
+def test_cl_pets_route_separates_pet_posts_from_general_blog(client, app):
+	regular_post_id = _insert_post_relative_to_now(
+		app, "Regular blog post", "new", "-2 hours"
+	)
+	pet_post_id = _insert_post_relative_to_now(
+		app, "Recent pet listing", "new", "-2 hours"
+	)
+	pending_pet_id = _insert_post_relative_to_now(
+		app, "Old pending pet listing", "pending", "-2 days"
+	)
+	complete_pet_id = _insert_post(app, title="Complete pet listing", status="complete")
+	_link_pet_listing(app, pet_post_id, "pet-1001")
+	_link_pet_listing(app, pending_pet_id, "pet-1002")
+	_link_pet_listing(app, complete_pet_id, "pet-1003")
+
+	general_page = client.get("/").get_data(as_text=True)
+	pets_response = client.get("/cl-pets")
+	pets_page = pets_response.get_data(as_text=True)
+
+	assert pets_response.status_code == 200
+	assert "Craigslist Pets" in pets_page
+	assert 'href="/cl-pets"' in pets_page
+	assert "Regular blog post" in general_page
+	assert "Recent pet listing" not in general_page
+	assert "Recent pet listing" in pets_page
+	assert "Old pending pet listing" in pets_page
+	assert "Complete pet listing" not in pets_page
 
 
 def test_audio_endpoint_sanitizes_html_and_returns_audio(client, app, monkeypatch):

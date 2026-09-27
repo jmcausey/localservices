@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
+  {% if feed_title %}
+    <h1>{{ feed_title }}</h1>
+  {% endif %}
   {% if g.user %}
     <a class="action" href="{{ url_for('blog.create') }}">New</a>
   {% endif %}

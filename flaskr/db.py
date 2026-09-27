@@ -5,6 +5,38 @@ import click
 from flask import current_app, g
 
 
+CREATE_CRAIGSLIST_POSTINGS_TABLE = """
+CREATE TABLE IF NOT EXISTS craigslist_postings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    craigslist_id TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    price_text TEXT,
+    price_amount REAL,
+    location TEXT,
+    latitude REAL,
+    longitude REAL,
+    listing_url TEXT NOT NULL,
+    category TEXT,
+    search_query TEXT,
+    posted_at TEXT,
+    scraped_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    image_url TEXT,
+    description TEXT,
+    blog_post_id INTEGER,
+    FOREIGN KEY (blog_post_id) REFERENCES post(id) ON DELETE SET NULL
+)
+"""
+
+
+def ensure_craigslist_postings_table(database_path):
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(CREATE_CRAIGSLIST_POSTINGS_TABLE)
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_craigslist_postings_posted_at "
+            "ON craigslist_postings(posted_at DESC)"
+        )
+
+
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(
@@ -43,4 +75,5 @@ sqlite3.register_converter(
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+    ensure_craigslist_postings_table(app.config['DATABASE'])
 

@@ -89,18 +89,42 @@ def create_post(title, body, author_id, status='new', image_file=None):
 @bp.route('/')
 def index():
     db = get_db()
-    # Keep pending posts indefinitely and never show completed posts in the feed.
     raw_posts = db.execute(
-        'SELECT p.id, title, body, status, created, author_id, username'
+        'SELECT p.id, p.title, p.body, p.status, p.created, p.author_id, u.username'
         ' FROM post p JOIN user u ON p.author_id = u.id'
-        ' WHERE status != \'complete\' AND '
-        '(datetime(created) >= datetime(\'now\', \'-1 day\') '
-        'OR status = \'pending\')'
-        ' ORDER BY created DESC'
+        ' WHERE p.status != \'complete\' '
+        'AND NOT EXISTS ('
+        'SELECT 1 FROM craigslist_postings cp '
+        'WHERE cp.blog_post_id = p.id AND cp.category = \'pet\') '
+        'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
+        'OR p.status = \'pending\')'
+        ' ORDER BY p.created DESC'
     ).fetchall()
     
     posts = [decode_post_bytes(p) for p in raw_posts]
     return render_template('blog/index.html', posts=posts)
+
+
+@bp.route('/cl-pets')
+def cl_pets():
+    db = get_db()
+    raw_posts = db.execute(
+        'SELECT p.id, p.title, p.body, p.status, p.created, p.author_id, u.username'
+        ' FROM craigslist_postings cp'
+        ' JOIN post p ON p.id = cp.blog_post_id'
+        ' JOIN user u ON u.id = p.author_id'
+        ' WHERE cp.category = \'pet\' AND p.status != \'complete\' '
+        'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
+        'OR p.status = \'pending\')'
+        ' ORDER BY p.created DESC'
+    ).fetchall()
+
+    posts = [decode_post_bytes(post) for post in raw_posts]
+    return render_template(
+        'blog/index.html',
+        posts=posts,
+        feed_title='Craigslist Pets',
+    )
 
 
 @bp.route('/scrolling')

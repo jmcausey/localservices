@@ -2,7 +2,7 @@ Here is an itemized, object-oriented structural breakdown of flaskr/scrapers/cra
 
 ### **Module: CraigslistScraperModule**
 
-A specialized web scraping script that extracts item listings from Craigslist near Athens, TX (zip code 75751), processes media and pricing metadata, performs batch and database deduplication, and persists formatted records into the application's blog post store.
+A specialized web scraper for Craigslist listings near Athens, TX (zip code 75751). It stores structured listing data in `craigslist_postings` and creates a linked blog post for the existing feed.
 
 #### **Constants & Environment Setup**
 
@@ -11,7 +11,7 @@ A specialized web scraping script that extracts item listings from Craigslist ne
 
 ### **Service: CraigslistScraperEngine (get\_craigslist\_listings)**
 
-Scrapes, parses, and converts search listings into HTML blog post payloads.
+Scrapes search results, parses listing metadata, and prepares a structured listing record plus formatted blog-post content.
 
 #### **Parameters & Default State**
 
@@ -26,10 +26,10 @@ Scrapes, parses, and converts search listings into HTML blog post payloads.
 > 4. **Filtering Rules**:  
    * **Keyword Filter**: Ignores any listing containing "modem" (case-insensitive) in the title.  
    * **Age Filter**: Ignores listings posted more than 24 hours prior to execution (now \- post\_time \> timedelta(days=1)).  
-> 5. **URL Formatting**: Converts relative URL paths into absolute links (\[https://dallas.craigslist.org/\](https://dallas.craigslist.org/)...).  
-> 6. **In-Memory Batch Deduplication**: Maintains a seen\_titles set to skip duplicate titles parsed from the current page payload.  
-> 7. **Detail Page Metadata Extraction**: Dispatches secondary HTTP requests to listing detail pages to extract OpenGraph preview images (meta\[property="og:image"\]).  
-> 8. **HTML Payload Generation**: Formats the title (\<CapitalizedQuery\>: \<Title\> (\<Price\>)) and body containing formatted HTML markup, pricing information, dynamic image tags, and original post links.
+> 5. **URL Formatting**: Resolves relative listing URLs against the East Texas Craigslist search URL.  
+> 6. **Unique-ID Deduplication**: Reads the Craigslist listing ID from the result row or listing URL and skips IDs already stored in SQLite before requesting detail pages. Duplicate IDs in the current search result batch are also skipped.  
+> 7. **Detail Page Metadata Extraction**: Fetches image, description, location, and coordinates when available from the listing detail page.  
+> 8. **Structured Payload Generation**: Returns the Craigslist ID, raw title and price, numeric price when parseable, location, coordinates, listing URL, category, search query, posting timestamp, image URL, and description, along with formatted blog-post content.
 
 ### **Service: ScrapedDataPersistenceService (insert\_scraped\_post)**
 
@@ -37,9 +37,10 @@ Database interface layer handling persistence of scraped items.
 
 #### **Execution Flow & Database Constraints**
 
-* **Context Creation**: Spawns temporary application contexts using create\_app().  
-* **Database Deduplication**: Checks post table for existing matching title records prior to insertion.  
-* **Insertion Payload**: Binds parameters and inserts new records (author\_id, title, body, status) into the post database table with default status 'new'.
+* **Context Creation**: Runs within the Flask application's database context.  
+* **Database Deduplication**: Uses `INSERT OR IGNORE` and the unique `craigslist_id` constraint in `craigslist_postings`.  
+* **Structured Listing Storage**: Persists listing identity and available price, location, category, query, timestamps, image, and description metadata.  
+* **Blog Feed Projection**: Creates a linked `post` row with status `new` only when the Craigslist ID is new, then stores its ID in `craigslist_postings.blog_post_id`.
 
 ### **Controller: ScraperExecutionPipeline (run\_scraper & CLI Entry point)**
 
@@ -47,5 +48,6 @@ Execution orchestration managing the workflow loop.
 
 #### **Functions & Logic**
 
-* **run\_scraper(query="surfboard")**: Orchestrates sequential processing by passing results from get\_craigslist\_listings directly into insert\_scraped\_post.  
+* **run\_scraper(query="surfboard")**: Loads known Craigslist IDs, avoids detail-page requests for those listings, and saves new structured rows with linked blog posts.  
+* **run\_pet\_scraper()**: Uses the East Texas community/pets URL (`cat=pet`), imports all new unique listings returned within the scraper's 24-hour freshness window, and is scheduled daily at 06:00 local time by `scheduler.py`.  
 * **if \_\_name\_\_ \== "\_\_main\_\_":**: Command-line entry point reading positional CLI arguments (sys.argv\[1\]) with fallback to "surfboard".

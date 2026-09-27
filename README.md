@@ -4,7 +4,8 @@
 
 ## Core Features
 
-* **Craigslist scraper:** Saves nonduplicate listings in SQLite as blog posts. The `/` feed shows posts from the last 24 hours, keeps `pending` posts visible indefinitely, and hides `complete` posts immediately without deleting them.
+* **Craigslist scraper:** A daily 06:00 scheduler job checks the East Texas community/pets category and saves every new, unique listing returned within the existing 24-hour freshness window in a dedicated SQLite table, with a linked blog post. Craigslist IDs prevent repeated imports. The `/` feed shows posts from the last 24 hours, keeps `pending` posts visible indefinitely, and hides `complete` posts immediately without deleting them.
+* **Pets feed (`/cl-pets`):** Shows linked Craigslist pets posts separately from the general `/` blog feed, using the same visibility and status rules.
 * **Control panel (`/control-panel`):** Runs Craigslist searches and filters stored posts.
 * **System logs (`/control-panel/system-logs`):** Displays recent Flask application logs stored in SQLite. The page requires login and supports severity filtering.
 * **Live feed (`/`):** Polls `/api/latest-post-id` every 10 seconds and refreshes when a newer post is available.
@@ -16,7 +17,7 @@
 | Component | Technology |
 | :--- | :--- |
 | **Backend** | Flask (Application Factory pattern with Blueprints) |
-| **Database** | SQLite for posts, weather, astronomy, network events, and application logs; posts use `new`, `pending`, and `complete` statuses |
+| **Database** | SQLite for Craigslist listings, blog posts, weather, astronomy, network events, and application logs; blog posts use `new`, `pending`, and `complete` statuses |
 | **Automation** | Python `schedule` runner |
 | **Media / Audio** | Google Text-to-Speech (`gTTS`) streaming, OpenGraph metadata extraction |
 

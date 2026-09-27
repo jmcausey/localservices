@@ -4,7 +4,7 @@ LocalServices is a Flask application for collecting and presenting scraped listi
 
 ## Blog Feed
 
-The root route (`/`) displays blog posts. Craigslist listings are stored in the `post` table as `new` posts. The root feed shows posts created within the last 24 hours, keeps `pending` posts visible indefinitely, and hides `complete` posts immediately. Hiding a post does not delete it. The `/scrolling` and `/kiosk` views currently display all posts without applying the root feed's age and status filters.
+The root route (`/`) displays general blog posts. A daily job at 06:00 local time checks the East Texas community/pets category and imports every new, unique listing returned within the scraper's 24-hour freshness window. Scraped Craigslist data is stored separately in `craigslist_postings`, keyed by Craigslist's unique listing ID, and linked to a blog post. Pet-category blog posts appear at `/cl-pets` and are excluded from `/`. The structured record can include the raw and numeric price, location and coordinates, listing URL, category, search query, posting and scrape timestamps, image URL, and description. Both feeds show blog posts created within the last 24 hours, keep `pending` posts visible indefinitely, and hide `complete` posts immediately. Hiding a post does not delete either record. The `/scrolling` and `/kiosk` views currently display all blog posts without applying these feed filters.
 
 The root feed checks `/api/latest-post-id` every 10 seconds and reloads when a newer post is available. The audio endpoint `/audio/<id>` generates speech from a post using gTTS.
 

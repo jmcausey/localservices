@@ -105,3 +105,15 @@ Flask application log records are stored in SQLite by `flaskr/system_logging.py`
 * **exception**: TEXT (Optional formatted exception traceback)
 
 The handler persists Flask application logger records at `INFO` level and above. Authenticated users can view and filter recent entries at `/control-panel/system-logs`.
+
+#### **9. Entity: craigslist\_postings**
+
+Stores structured Craigslist listing data separately from rendered blog posts. `craigslist_id` is unique and is used to skip previously stored listings. The table is created by the application startup migration in `flaskr/db.py` and is also included in `schema.sql` for database initialization.
+
+* **id**: INTEGER (Primary Key, Autoincrement)
+* **craigslist\_id**: TEXT (Not Null, Unique Craigslist listing identifier)
+* **title**, **price\_text**, **location**, **listing\_url**, **category**, **search\_query**, **posted\_at**, **scraped\_at**, **image\_url**, **description**: TEXT
+* **price\_amount**, **latitude**, **longitude**: REAL (Nullable when not present in the listing)
+* **blog\_post\_id**: INTEGER (Links the structured listing to its feed post)
+
+`INSERT OR IGNORE` and the unique ID constraint prevent a listing from creating a second Craigslist row or blog post on later scrapes.

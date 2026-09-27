@@ -18,6 +18,7 @@ nav:
       - Blog and API: 'blog.py.md'
       - Control: 'control.py.md'
       - Database: 'db.py.md'
+      - Craigslist scraper: 'scrapers/craigslist.py.md'
       - Network: 'network.py.md'
       - Scanner: 'scanner.py.md'
   - Astronomy:

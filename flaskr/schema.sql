@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS post;
+DROP TABLE IF EXISTS craigslist_postings;
 DROP TABLE IF EXISTS chart;
 DROP TABLE IF EXISTS gallary;
 DROP TABLE IF EXISTS network_logs;
@@ -21,6 +22,29 @@ CREATE TABLE post (
   status TEXT NOT NULL DEFAULT 'new',
   FOREIGN KEY (author_id) REFERENCES user (id)
 );
+
+CREATE TABLE craigslist_postings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  craigslist_id TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  price_text TEXT,
+  price_amount REAL,
+  location TEXT,
+  latitude REAL,
+  longitude REAL,
+  listing_url TEXT NOT NULL,
+  category TEXT,
+  search_query TEXT,
+  posted_at TEXT,
+  scraped_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  image_url TEXT,
+  description TEXT,
+  blog_post_id INTEGER,
+  FOREIGN KEY (blog_post_id) REFERENCES post(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_craigslist_postings_posted_at
+  ON craigslist_postings(posted_at DESC);
 
 CREATE TABLE IF NOT EXISTS chart (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

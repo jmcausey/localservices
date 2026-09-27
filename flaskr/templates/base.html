@@ -62,8 +62,8 @@
   <div class="nav-top-row">
     <ul class="nav-left">
       <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
-      <li class="{% if request.endpoint and request.endpoint.startswith('control.') %}active{% endif %}">
-        <a href="{{ url_for('control.control_panel') }}">Control Panel</a>
+      <li class="{% if request.endpoint == 'blog.cl_pets' %}active{% endif %}">
+        <a href="{{ url_for('blog.cl_pets') }}">Pets</a>
       </li>
       <li class="{% if request.endpoint and request.endpoint.startswith('weather.') %}active{% endif %}">
         <a href="{{ url_for('weather.weather') }}">Weather</a>
@@ -116,6 +116,9 @@
 
     <div class="nav-bottom-right">
       <ul class="user-actions">
+        <li class="{% if request.endpoint and request.endpoint.startswith('control.') %}active{% endif %}">
+          <a href="{{ url_for('control.control_panel') }}">Control</a>
+        </li>
         {% if g.user %}
           <li><span>{{ g.user['username'] }}</span></li>
           <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>

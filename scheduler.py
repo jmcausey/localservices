@@ -20,6 +20,7 @@ from scrapers.kevinmd import run_scraper as kevinmd_scraper
 from scrapers.informaticsinc import run_scraper as informaticsinc
 from scrapers.cl_surfboards import run_scraper as clsurfboards
 from scrapers.cl_freestuff import run_scraper as clfreestuff
+from scrapers.craigslist import run_pet_scraper as clpetscraper
 from flaskr.weather.tasks import ( 
     fetch_weather, 
     post_weather_updates_from_db
@@ -49,6 +50,12 @@ def daily_update():
     clsurfboards()
     post_apod_to_blog(app, author_id=1)    
 
+
+@repeat(every().day.at("06:00"))
+def craigslist_pets_daily():
+    clpetscraper()
+
+
 @repeat(every().minute)
 def cleanup_completed_posts():
     """Removes posts marked as 'complete' from the database."""
@@ -71,6 +78,7 @@ STARTUP_JOBS = [
     ("kevinmd_scraper", lambda: kevinmd_scraper()),
     ("clsurfboards", lambda: clsurfboards()),
     ("clfreestuff", lambda: clfreestuff()),
+    ("craigslist_pets_daily", lambda: clpetscraper()),
 ]
 
 
