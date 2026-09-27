@@ -93,3 +93,15 @@ Indexes created to optimize query filtering on high-volume diagnostic tables:
 
 * **idx\_network\_logs\_timestamp**: B-tree index on network\_logs(timestamp).  
 * **idx\_network\_logs\_source\_ip**: B-tree index on network\_logs(source\_ip).
+
+#### **8. Entity: system\_logs**
+
+Flask application log records are stored in SQLite by `flaskr/system_logging.py`. The logging handler creates this table and its timestamp index when the application starts; it is not declared in `schema.sql`.
+
+* **id**: INTEGER (Primary Key, Autoincrement)
+* **created\_at**: TEXT (Defaults to CURRENT\_TIMESTAMP)
+* **level**, **logger**, **message**: TEXT (Severity, logger name, and rendered message)
+* **pathname**: TEXT; **line\_number**: INTEGER (Source location)
+* **exception**: TEXT (Optional formatted exception traceback)
+
+The handler persists Flask application logger records at `INFO` level and above. Authenticated users can view and filter recent entries at `/control-panel/system-logs`.

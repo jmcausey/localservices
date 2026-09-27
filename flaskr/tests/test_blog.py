@@ -64,6 +64,18 @@ def _insert_post(
 		return cursor.lastrowid
 
 
+def _insert_post_relative_to_now(app, title, status, age):
+	with app.app_context():
+		db = get_db()
+		cursor = db.execute(
+			"INSERT INTO post (author_id, created, title, body, status) "
+			"VALUES (1, datetime('now', ?), ?, 'Test body', ?)",
+			(age, title, status),
+		)
+		db.commit()
+		return cursor.lastrowid
+
+
 def _log_in(client, user_id=1):
 	with client.session_transaction() as session:
 		session["user_id"] = user_id
@@ -84,6 +96,24 @@ def test_latest_post_id_returns_most_recent_post(client, app):
 
 	assert response.status_code == 200
 	assert response.json == {"latest_id": newest_post_id}
+
+
+def test_blog_feed_expires_posts_but_keeps_pending_and_hides_complete(client, app):
+	_insert_post_relative_to_now(app, "Recent new", "new", "-2 hours")
+	_insert_post_relative_to_now(app, "Expired new", "new", "-2 days")
+	_insert_post_relative_to_now(app, "Expired pending", "pending", "-2 days")
+	_insert_post_relative_to_now(app, "Recent complete", "complete", "-2 hours")
+	_insert_post_relative_to_now(app, "Expired complete", "complete", "-2 days")
+
+	response = client.get("/")
+	page = response.get_data(as_text=True)
+
+	assert response.status_code == 200
+	assert "Recent new" in page
+	assert "Expired pending" in page
+	assert "Expired new" not in page
+	assert "Recent complete" not in page
+	assert "Expired complete" not in page
 
 
 def test_audio_endpoint_sanitizes_html_and_returns_audio(client, app, monkeypatch):

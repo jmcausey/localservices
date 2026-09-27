@@ -4,18 +4,19 @@
 
 ## Core Features
 
-* **Automated Scrapers (`flaskr/scraper/`):** Targeted extraction modules for online posts and pruning posts older than 24 hours.
-* **Background Task Automation (`scheduler.py`):** Multi-run execution orchestrator triggering ingestion pipelines.
-* **Live Polling Dashboard (`/`):** Real-time feed monitoring that polls `/api/latest-post-id` every 10 seconds to auto-refresh upon new database insertions.
-* **Teleprompter Feed (`/scrolling`):** Locked-viewport continuous vertical scrolling container with interactive hover-to-pause controls.
-* **Audio Kiosk Reader (`/kiosk`):** Single-post presentation view utilizing on-the-fly `gTTS` audio streaming via `/audio/<id>`, a 10-second post-playback pause, and automated carousel rotation.
+* **Craigslist scraper:** Saves nonduplicate listings in SQLite as blog posts. The `/` feed shows posts from the last 24 hours, keeps `pending` posts visible indefinitely, and hides `complete` posts immediately without deleting them.
+* **Control panel (`/control-panel`):** Runs Craigslist searches and filters stored posts.
+* **System logs (`/control-panel/system-logs`):** Displays recent Flask application logs stored in SQLite. The page requires login and supports severity filtering.
+* **Live feed (`/`):** Polls `/api/latest-post-id` every 10 seconds and refreshes when a newer post is available.
+* **Scrolling feed (`/scrolling`):** Displays posts in a continuous scrolling view with hover-to-pause behavior.
+* **Audio kiosk (`/kiosk`):** Reads posts aloud using `gTTS` through `/audio/<id>`.
 
 ## Tech Stack & Architecture
 
 | Component | Technology |
 | :--- | :--- |
 | **Backend** | Flask (Application Factory pattern with Blueprints) |
-| **Database** | SQLite with BLOB-to-string decoding & dynamic status management (`new`, `pending`, `complete`) |
+| **Database** | SQLite for posts, weather, astronomy, network events, and application logs; posts use `new`, `pending`, and `complete` statuses |
 | **Automation** | Python `schedule` runner |
 | **Media / Audio** | Google Text-to-Speech (`gTTS`) streaming, OpenGraph metadata extraction |
 
@@ -25,32 +26,40 @@
 | :--- | :--- |
 | `flaskr/` | Core application factory, database models, and authentication blueprint |
 | `flaskr/blog.py` | Blueprint routing for post lifecycle management, API endpoints, and audio streaming |
-| `flaskr/scraper/` | Modular web scraping scripts  |
+| `flaskr/scrapers/` | Craigslist and other web scraping modules |
+| `flaskr/system_logging.py` | SQLite logging handler installed by the Flask application factory |
 | `flaskr/templates/` | Jinja2 templates (standard, scrolling teleprompter, and audio kiosk layouts) |
 | `scheduler.py` | Background execution script for scheduled task windows |
 
 ## Getting Started
 
-1. **Clone the repository:**
+1. **Install dependencies:**
    ```bash
-   git clone [https://github.com/jmcausey/localservices.git](https://github.com/jmcausey/localservices.git)
-   cd localservices
+   python -m pip install -r requirements.txt
+   ```
 
-2. **Install dependancies:**
-   ```bash 
-   pip install -r requirements.txt
-
-3. **Initialize the database:**
-   ```bash 
+2. **Initialize the database:**
+   ```bash
    flask --app flaskr init-db
+   ```
 
-4. **Run the flask application:**
-   ```bash 
-   flask --app flaskr run
-
-5. **Start background task automation:**
+3. **Run the Flask application:**
    ```bash
-   python scheduler.py
+   flask --app flaskr run
+   ```
+
+4. **Run the tests:** Install `pytest` if needed, then run:
+   ```bash
+   python -m pip install pytest
+   python -m pytest flaskr/tests -q
+   ```
+
+5. **Preview the documentation site:**
+   ```bash
+   mkdocs serve
+   ```
+
+   MkDocs reads its pages from `flaskr/docs/`.
 
 ## Credits
 

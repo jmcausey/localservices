@@ -57,3 +57,10 @@ Controller endpoint managing administrative operations via single-route branchin
   * status\_filter: Retained status filter string.  
   * search\_keyword: Retained search keyword string.  
   * age\_filter: Retained age filter string.
+
+### **Route: system\_logs() (GET /control-panel/system-logs)**
+
+* **Guard**: `@login_required`.
+* Reads the newest 250 matching entries from the `system_logs` table.
+* Supports the `level` query parameter: `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; omitting it shows all levels.
+* Renders `blog/system_logs.html` with the timestamp, severity, logger name, message, source file and line, and optional exception details.

@@ -89,11 +89,13 @@ def create_post(title, body, author_id, status='new', image_file=None):
 @bp.route('/')
 def index():
     db = get_db()
-    # Filter out posts older than 1 day unless their status is 'pending'
+    # Keep pending posts indefinitely and never show completed posts in the feed.
     raw_posts = db.execute(
         'SELECT p.id, title, body, status, created, author_id, username'
         ' FROM post p JOIN user u ON p.author_id = u.id'
-        ' WHERE datetime(created) >= datetime(\'now\', \'-1 day\') OR status = \'pending\''
+        ' WHERE status != \'complete\' AND '
+        '(datetime(created) >= datetime(\'now\', \'-1 day\') '
+        'OR status = \'pending\')'
         ' ORDER BY created DESC'
     ).fetchall()
     

@@ -35,7 +35,7 @@ Controller methods mapped to HTTP endpoints for rendering UI templates and handl
 
 #### **1\. Route: index() (GET /)**
 
-* **Query Logic**: Fetches posts created within the last 24 hours (datetime('now', '-1 day')) or posts with status 'pending', sorted newest first.  
+* **Query Logic**: Fetches posts created within the last 24 hours or posts with status `pending`, but always excludes posts with status `complete`. Results are sorted newest first. Expired posts remain in the database; this route only controls feed visibility.  
 * **View Render**: blog/index.html passing decoded posts array.
 
 #### **2\. Route: scrolling\_view() (GET /scrolling)**
@@ -47,6 +47,10 @@ Controller methods mapped to HTTP endpoints for rendering UI templates and handl
 
 * **Query Logic**: Fetches raw post dictionary entries for specialized display feeds.  
 * **View Render**: blog/index\_speak\_scroll.html.
+
+#### **Root Feed Visibility**
+
+Craigslist listings are inserted into the `post` table with status `new` and a creation timestamp. On `/`, a post is visible while it is less than 24 hours old, unless it is `pending`, which remains visible regardless of age. A `complete` post is hidden immediately, even if it is less than 24 hours old. Changing status does not delete the row. The `/scrolling` and `/kiosk` routes currently query all posts without applying these root-feed visibility rules.
 
 #### **4\. Route: create() (GET, POST /create)**
 
@@ -77,7 +81,7 @@ API and streaming media services exposing endpoints for async clients and Text-t
 #### **Methods & Endpoints**
 
 * **latest\_post\_id() (GET /api/latest-post-id)**:  
-  * Queries MAX(id) from post table.  
+  * Selects the ID of the post with the newest `created` timestamp.  
   * **Response**: JSON payload {"latest\_id": \<int\>} used by client polling scripts.  
 * **get\_post\_audio(id) (GET /audio/\<id\>)**:  
   * Queries title and body for post id.  
