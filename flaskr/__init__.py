@@ -5,6 +5,7 @@ import sqlite3
 import click
 import markupsafe
 from flask import current_app, g
+from flaskr.system_logging import install_database_logging
 from flask.cli import with_appcontext
 
 
@@ -15,6 +16,10 @@ def create_app(test_config=None):
         SECRET_KEY='dev',
         DATABASE='/home/jon/local/data/flaskr.sqlite',
     )
+    if test_config is not None:
+        app.config.update(test_config)
+
+    install_database_logging(app)
 
     from . import db
     db.init_app(app)

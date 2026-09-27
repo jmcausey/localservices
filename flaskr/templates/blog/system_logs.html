@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}System Logs{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<style>
+  .logs-toolbar {
+    display: flex;
+    align-items: end;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  .logs-toolbar label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  .logs-toolbar select,
+  .logs-toolbar button {
+    min-height: 2.4rem;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid #a0aec0;
+    border-radius: 4px;
+    background: #fff;
+    font: inherit;
+  }
+  .logs-toolbar button {
+    border-color: #2b6cb0;
+    background: #2b6cb0;
+    color: #fff;
+    cursor: pointer;
+  }
+  .logs-count {
+    margin-left: auto;
+    color: #4a5568;
+  }
+  .logs-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+  .logs-table th,
+  .logs-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  .logs-table th {
+    background: #edf2f7;
+    white-space: nowrap;
+  }
+  .log-level {
+    font-weight: 700;
+  }
+  .log-level-ERROR,
+  .log-level-CRITICAL {
+    color: #b42318;
+  }
+  .log-level-WARNING {
+    color: #9a6700;
+  }
+  .log-message {
+    min-width: 16rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .log-source {
+    color: #4a5568;
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+  .log-exception {
+    max-width: 48rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: #742a2a;
+  }
+  @media (max-width: 640px) {
+    .logs-toolbar {
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+    .logs-count {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+</style>
+
+<form class="logs-toolbar" method="get">
+  <div>
+    <label for="level">Severity</label>
+    <select id="level" name="level">
+      <option value="all" {% if level_filter == 'ALL' %}selected{% endif %}>All levels</option>
+      {% for level in levels %}
+        <option value="{{ level }}" {% if level_filter == level %}selected{% endif %}>{{ level }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit">Filter</button>
+  <span class="logs-count">Showing {{ logs|length }} most recent matching entries (maximum 250).</span>
+</form>
+
+{% if logs %}
+  <div class="logs-table-wrap">
+    <table class="logs-table">
+      <thead>
+        <tr>
+          <th scope="col">Time</th>
+          <th scope="col">Level</th>
+          <th scope="col">Logger</th>
+          <th scope="col">Message</th>
+          <th scope="col">Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log['created_at'] }}</td>
+            <td class="log-level log-level-{{ log['level'] }}">{{ log['level'] }}</td>
+            <td>{{ log['logger'] }}</td>
+            <td class="log-message">
+              {{ log['message'] }}
+              {% if log['exception'] %}
+                <details>
+                  <summary>Exception details</summary>
+                  <pre class="log-exception">{{ log['exception'] }}</pre>
+                </details>
+              {% endif %}
+            </td>
+            <td class="log-source">{{ log['pathname'] }}:{{ log['line_number'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>No system log entries match this filter.</p>
+{% endif %}
+{% endblock %}

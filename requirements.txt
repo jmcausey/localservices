@@ -21,3 +21,4 @@ pdoc
 sphinx
 mkdocs
 mkdocs-material
+pytest

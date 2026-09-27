@@ -90,7 +90,7 @@
 
       {% elif request.endpoint and request.endpoint.startswith('control.') %}
         <li><a href="{{ url_for('control.control_panel') }}">Scraper Tasks</a></li>
-        <li><a href="#">System Logs</a></li>
+        <li><a href="{{ url_for('control.system_logs') }}">System Logs</a></li>
         <li><a href="#">Settings</a></li>
 
       {% elif request.endpoint and request.endpoint.startswith('astronomy.') %}

@@ -130,3 +130,17 @@ CREATE TABLE search_query (
     status TEXT NOT NULL,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS system_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  level TEXT NOT NULL,
+  logger TEXT NOT NULL,
+  message TEXT NOT NULL,
+  pathname TEXT,
+  line_number INTEGER,
+  exception TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_system_logs_created_at
+  ON system_logs(created_at DESC);

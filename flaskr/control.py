@@ -68,3 +68,34 @@ def control_panel():
         search_keyword=search_keyword,
         age_filter=age_filter
     )
+
+
+@bp.route('/control-panel/system-logs')
+@login_required
+def system_logs():
+    levels = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
+    level_filter = request.args.get('level', 'all').upper()
+    if level_filter != 'ALL' and level_filter not in levels:
+        level_filter = 'ALL'
+
+    db = get_db()
+    if level_filter == 'ALL':
+        logs = db.execute(
+            'SELECT id, created_at, level, logger, message, pathname, '
+            'line_number, exception FROM system_logs '
+            'ORDER BY created_at DESC, id DESC LIMIT 250'
+        ).fetchall()
+    else:
+        logs = db.execute(
+            'SELECT id, created_at, level, logger, message, pathname, '
+            'line_number, exception FROM system_logs WHERE level = ? '
+            'ORDER BY created_at DESC, id DESC LIMIT 250',
+            (level_filter,)
+        ).fetchall()
+
+    return render_template(
+        'blog/system_logs.html',
+        logs=logs,
+        level_filter=level_filter,
+        levels=levels,
+    )
