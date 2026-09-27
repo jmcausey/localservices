@@ -76,13 +76,19 @@ def _insert_post_relative_to_now(app, title, status, age):
 		return cursor.lastrowid
 
 
-def _link_pet_listing(app, post_id, craigslist_id):
+def _link_craigslist_listing(app, post_id, craigslist_id, category="pet"):
 	with app.app_context():
 		get_db().execute(
 			"INSERT INTO craigslist_postings "
 			"(craigslist_id, title, listing_url, category, blog_post_id) "
-			"VALUES (?, ?, ?, 'pet', ?)",
-			(craigslist_id, "Pet listing", f"https://craigslist.test/{craigslist_id}", post_id),
+			"VALUES (?, ?, ?, ?, ?)",
+			(
+				craigslist_id,
+				"Craigslist listing",
+				f"https://craigslist.test/{craigslist_id}",
+				category,
+				post_id,
+			),
 		)
 		get_db().commit()
 
@@ -100,13 +106,31 @@ def test_latest_post_id_is_zero_when_there_are_no_posts(client):
 
 
 def test_latest_post_id_returns_most_recent_post(client, app):
-	_insert_post(app, title="Older", created="2026-01-01 12:00:00")
-	newest_post_id = _insert_post(app, title="Newer", created="2026-01-02 12:00:00")
+	_insert_post_relative_to_now(app, "Older", "new", "-2 hours")
+	newest_post_id = _insert_post_relative_to_now(app, "Newer", "new", "-1 hour")
 
 	response = client.get("/api/latest-post-id")
 
 	assert response.status_code == 200
 	assert response.json == {"latest_id": newest_post_id}
+
+
+def test_latest_post_id_is_scoped_to_the_active_feed(client, app):
+	blog_post_id = _insert_post_relative_to_now(
+		app, "Regular feed post", "new", "-2 minutes"
+	)
+	pet_post_id = _insert_post_relative_to_now(
+		app, "Pet feed post", "new", "-1 minute"
+	)
+	_link_craigslist_listing(app, pet_post_id, "pet-feed-1")
+
+	blog_response = client.get("/api/latest-post-id?feed=blog")
+	cl_response = client.get("/api/latest-post-id?feed=cl")
+	pets_response = client.get("/api/latest-post-id?feed=pets")
+
+	assert blog_response.json == {"latest_id": blog_post_id}
+	assert cl_response.json == {"latest_id": pet_post_id}
+	assert pets_response.json == {"latest_id": pet_post_id}
 
 
 def test_blog_feed_expires_posts_but_keeps_pending_and_hides_complete(client, app):
@@ -138,19 +162,49 @@ def test_cl_pets_route_separates_pet_posts_from_general_blog(client, app):
 		app, "Old pending pet listing", "pending", "-2 days"
 	)
 	complete_pet_id = _insert_post(app, title="Complete pet listing", status="complete")
-	_link_pet_listing(app, pet_post_id, "pet-1001")
-	_link_pet_listing(app, pending_pet_id, "pet-1002")
-	_link_pet_listing(app, complete_pet_id, "pet-1003")
+	other_cl_post_id = _insert_post_relative_to_now(
+		app, "Surfboard Craigslist listing", "new", "-2 hours"
+	)
+	legacy_cl_post_id = _insert_post_relative_to_now(
+		app, "Free: Legacy listing", "new", "-2 hours"
+	)
+	_link_craigslist_listing(app, pet_post_id, "pet-1001")
+	_link_craigslist_listing(app, pending_pet_id, "pet-1002")
+	_link_craigslist_listing(app, complete_pet_id, "pet-1003")
+	_link_craigslist_listing(app, other_cl_post_id, "listing-2001", category="sss")
+	with app.app_context():
+		get_db().execute(
+			"UPDATE post SET body = ? WHERE id = ?",
+			(
+				'<a href="https://craigslist.test/legacy">'
+				"View Craigslist Listing</a>",
+				legacy_cl_post_id,
+			),
+		)
+		get_db().commit()
 
 	general_page = client.get("/").get_data(as_text=True)
+	cl_response = client.get("/cl")
+	cl_page = cl_response.get_data(as_text=True)
 	pets_response = client.get("/cl-pets")
 	pets_page = pets_response.get_data(as_text=True)
 
+	assert cl_response.status_code == 200
+	assert "Craigslist Listings" in cl_page
+	assert "Recent pet listing" in cl_page
+	assert "Surfboard Craigslist listing" in cl_page
+	assert "Free: Legacy listing" in cl_page
+	assert "Regular blog post" not in cl_page
 	assert pets_response.status_code == 200
 	assert "Craigslist Pets" in pets_page
-	assert 'href="/cl-pets"' in pets_page
+	assert '<a href="/cl">CL</a>' in pets_page
+	assert '<a href="/cl">All</a>' in pets_page
+	assert '<a href="/cl-pets">Pets</a>' in pets_page
+	assert cl_page.index('>CL</a>') < cl_page.index('>All</a>')
 	assert "Regular blog post" in general_page
 	assert "Recent pet listing" not in general_page
+	assert "Surfboard Craigslist listing" not in general_page
+	assert "Free: Legacy listing" not in general_page
 	assert "Recent pet listing" in pets_page
 	assert "Old pending pet listing" in pets_page
 	assert "Complete pet listing" not in pets_page

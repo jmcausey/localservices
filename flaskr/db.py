@@ -27,6 +27,21 @@ CREATE TABLE IF NOT EXISTS craigslist_postings (
 )
 """
 
+CREATE_CRAIGSLIST_JOBS_TABLE = """
+CREATE TABLE IF NOT EXISTS craigslist_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_key TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    term TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('pet', 'sss', 'zip')),
+    radius INTEGER NOT NULL DEFAULT 100,
+    run_times TEXT NOT NULL DEFAULT '06:00',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    last_run_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
+"""
 
 def ensure_craigslist_postings_table(database_path):
     with sqlite3.connect(database_path) as connection:
@@ -34,6 +49,28 @@ def ensure_craigslist_postings_table(database_path):
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_craigslist_postings_posted_at "
             "ON craigslist_postings(posted_at DESC)"
+        )
+
+
+def ensure_craigslist_jobs_table(database_path):
+    default_jobs = (
+        ("pets", "East Texas Pets", "pets", "pet", 100, "06:00"),
+        ("surfboards", "Surfboards", "surfboard", "sss", 100, "08:00,20:00"),
+        ("free-stuff", "Free Stuff", "free stuff", "zip", 100, "08:00,20:00"),
+    )
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(CREATE_CRAIGSLIST_JOBS_TABLE)
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_craigslist_jobs_enabled "
+            "ON craigslist_jobs(enabled)"
+        )
+        connection.executemany(
+            """
+            INSERT OR IGNORE INTO craigslist_jobs
+                (job_key, name, term, category, radius, run_times)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            default_jobs,
         )
 
 
@@ -76,4 +113,5 @@ def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
     ensure_craigslist_postings_table(app.config['DATABASE'])
+    ensure_craigslist_jobs_table(app.config['DATABASE'])
 

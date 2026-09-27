@@ -50,7 +50,7 @@ Controller methods mapped to HTTP endpoints for rendering UI templates and handl
 
 #### **Root Feed Visibility**
 
-Each scraped Craigslist item has a separate `craigslist_postings` record keyed by Craigslist's unique listing ID. A corresponding row in `post` is linked through `craigslist_postings.blog_post_id` and starts with status `new`. Pet-category posts are excluded from `/` and displayed at `/cl-pets`; both feeds show posts less than 24 hours old or any `pending` post, and always hide `complete` posts. Changing status does not delete either record. The `/scrolling` and `/kiosk` routes currently query all blog posts without applying these feed visibility rules.
+Each scraped Craigslist item has a separate `craigslist_postings` record keyed by Craigslist's unique listing ID. A corresponding row in `post` is linked through `craigslist_postings.blog_post_id` and starts with status `new`. Structured Craigslist posts and legacy Craigslist blog posts are excluded from `/` and displayed at `/cl`; `/cl-pets` filters structured listings to the pet category. Both Craigslist feeds show posts less than 24 hours old or any `pending` post, and always hide `complete` posts. Changing status does not delete either record. The `/scrolling` and `/kiosk` routes currently query all blog posts without applying these feed visibility rules.
 
 #### **4\. Route: create() (GET, POST /create)**
 

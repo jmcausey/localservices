@@ -83,6 +83,14 @@ nav th, nav td,
   margin-top: 10px;
 }
 
+.post .body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 /* Base button styles applied to both <button> and <a> */
 .btn {
   display: inline-block;

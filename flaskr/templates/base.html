@@ -11,6 +11,18 @@
       background-color: #1a202c;
       color: #fff;
     }
+    body.data-page {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+      max-width: none;
+      margin: 0;
+    }
+    body.data-page > .content {
+      flex: 1 0 auto;
+      padding-bottom: 12px;
+    }
     .nav-top-row, .nav-bottom-row {
       display: flex;
       justify-content: space-between;
@@ -19,6 +31,13 @@
     }
     .nav-top-row {
       border-bottom: 1px solid #2d3748;
+    }
+    .nav-sub-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.35rem 1rem;
+      border-bottom: 1px solid #2d3748;
+      background-color: #202938;
     }
     .nav-left, .nav-sub-right, .weather-metrics, .user-actions, .clock-container, .nav-bottom-right {
       display: flex;
@@ -55,15 +74,15 @@
     }
   </style>
 </head>
-<body>
+<body class="{% if request.endpoint in ['weather.weather', 'network.network', 'astronomy.astronomy_table'] %}data-page{% endif %}">
 
 <nav class="navbar">  
-  <!-- Row 1: Primary Links + Inline Horizontal Sub-Navigation -->
+  <!-- Row 1: Primary Links -->
   <div class="nav-top-row">
     <ul class="nav-left">
       <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
-      <li class="{% if request.endpoint == 'blog.cl_pets' %}active{% endif %}">
-        <a href="{{ url_for('blog.cl_pets') }}">Pets</a>
+      <li class="{% if request.endpoint in ['blog.cl', 'blog.cl_pets', 'control.craigslist_jobs'] %}active{% endif %}">
+        <a href="{{ url_for('blog.cl') }}">CL</a>
       </li>
       <li class="{% if request.endpoint and request.endpoint.startswith('weather.') %}active{% endif %}">
         <a href="{{ url_for('weather.weather') }}">Weather</a>
@@ -76,9 +95,16 @@
       </li>
     </ul>
 
-    <!-- Horizontal Sub-navigation on the right side of Row 1 -->
+  </div>
+
+  <!-- Row 2: Section Sub-navigation -->
+  <div class="nav-sub-row">
     <ul class="nav-sub-right">
-      {% if request.endpoint and request.endpoint.startswith('weather.') %}
+      {% if request.endpoint in ['blog.cl', 'blog.cl_pets', 'control.craigslist_jobs'] %}
+        <li><a href="{{ url_for('blog.cl') }}">All</a></li>
+        <li><a href="{{ url_for('blog.cl_pets') }}">Pets</a></li>
+        <li><a href="{{ url_for('control.craigslist_jobs') }}">Search Jobs</a></li>
+      {% elif request.endpoint and request.endpoint.startswith('weather.') %}
         <li><a href="{{ url_for('weather.weather') }}">Current Radar</a></li>
         <li><a href="#">Forecast</a></li>
         <li><a href="#">Historical Data</a></li>
@@ -104,7 +130,7 @@
     </ul>
   </div>
 
-  <!-- Row 2: Weather Badges, User Actions, and Clock -->
+  <!-- Row 3: Weather Badges, User Actions, and Clock -->
   <div class="nav-bottom-row">
     <ul class="weather-metrics">
       <li><span class="weather-badge"><span id="nav-location-display">--</span></span></li>

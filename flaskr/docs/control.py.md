@@ -6,7 +6,7 @@ A Flask Blueprint instance (bp \= Blueprint('control', \_\_name\_\_)) encapsulat
 
 #### **External Dependencies**
 
-* **clscraper**: Alias for flaskr.scrapers.craigslist.run\_scraper, the external execution engine for fetching and parsing Craigslist data.  
+* **run\_due\_craigslist\_jobs**: Scheduler helper that executes enabled jobs when their configured daily run times are due.  
 * **get\_db**: Database utility for retrieving current thread connection.  
 * **login\_required**: Authentication decorator enforcing protected access.
 
@@ -18,20 +18,13 @@ Controller endpoint managing administrative operations via single-route branchin
 
 * **Guard**: @login\_required (Restricts access to authenticated users).
 
-#### **1\. Sub-Task: ScraperJobDispatcher (POST Request Branch)**
+#### **CraigslistJobManager (GET, POST /control-panel/cl-jobs)**
 
-* **Conditions**: Evaluates request.method \== 'POST' and verifies presence of 'craigslist\_query' in form payload.  
-* **Input Extraction**:  
-  * query: Form field craigslist\_query (trimmed).  
-  * radius: Form field radius (defaults to 100).  
-* **Database Action**:  
-  * Inserts search record into search\_query table (term, radius, status="completed", created=datetime("now")).  
-  * Commits transaction to database.  
-* **Execution Action**:  
-  * Triggers blocking scraper task clscraper(query=query).  
-* **User Feedback & Flow**:  
-  * Sets success flash notification (flash(..., 'success')).  
-  * Redirects to url\_for('control.control\_panel') (PRG Pattern).
+* **Guard**: `@login_required`.
+* **GET**: Lists seeded and user-configured jobs with their category, term, radius, enabled state, daily run times, and last-run timestamp.
+* **POST add/update**: Validates the job name, search term, category (`pet`, `sss`, or `zip`), radius (5–500 miles), and one or more local `HH:MM` run times.
+* **Persistence**: Adds or updates rows in `craigslist_jobs`. Defaults are East Texas pets at 06:00 and surfboards/free stuff at 08:00 and 20:00.
+* **Scheduler**: Checks enabled jobs each minute, runs due jobs, and records outcomes in `search_query`.
 
 #### **2\. Service: PostQueryEngine (GET Request Branch)**
 

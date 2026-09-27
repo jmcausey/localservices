@@ -1,11 +1,12 @@
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for
 )
+from datetime import datetime
+from uuid import uuid4
 from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
 from flaskr.db import get_db
-from flaskr.scrapers.craigslist import run_scraper as clscraper
 
 # Define the new blueprint for control panel features
 bp = Blueprint('control', __name__)
@@ -14,25 +15,6 @@ bp = Blueprint('control', __name__)
 @login_required  # Optional: ensure user is authenticated
 def control_panel():
     db = get_db()
-    
-    if request.method == 'POST' and 'craigslist_query' in request.form:
-        query = request.form.get('craigslist_query', '').strip()
-        radius = request.form.get('radius', 100)
-        
-        if query:
-            # 1. Store search task
-            db.execute(
-                'INSERT INTO search_query (term, radius, status, created)'
-                ' VALUES (?, ?, "completed", datetime("now"))',
-                (query, radius)
-            )
-            db.commit()
-
-            # 2. Immediately execute the scraper for this query
-            clscraper(query=query)
-
-            flash(f"Scraped and fetched posts for: '{query}'!", 'success')
-            return redirect(url_for('control.control_panel'))
 
     # Extract Blog Filtering Options from Query Strings
     status_filter = request.args.get('status', 'all')
@@ -67,6 +49,116 @@ def control_panel():
         status_filter=status_filter,
         search_keyword=search_keyword,
         age_filter=age_filter
+    )
+
+
+def _job_form_values(form):
+    name = form.get('name', '').strip()
+    term = form.get('term', '').strip()
+    category = form.get('category', '').strip()
+    if not name or not term:
+        raise ValueError('Job name and search term are required.')
+    if category not in {'pet', 'sss', 'zip'}:
+        raise ValueError('Choose a valid Craigslist category.')
+
+    try:
+        radius = int(form.get('radius', '100'))
+    except ValueError as error:
+        raise ValueError('Radius must be a number between 5 and 500.') from error
+    if not 5 <= radius <= 500:
+        raise ValueError('Radius must be between 5 and 500.')
+
+    run_times = set()
+    for value in form.get('run_times', '').split(','):
+        value = value.strip()
+        if not value:
+            continue
+        try:
+            run_times.add(datetime.strptime(value, '%H:%M').strftime('%H:%M'))
+        except ValueError as error:
+            raise ValueError('Run times must use HH:MM, separated by commas.') from error
+    if not run_times:
+        raise ValueError('Add at least one daily run time in HH:MM format.')
+
+    return name, term, category, radius, ','.join(sorted(run_times))
+
+
+@bp.route('/control-panel/cl-jobs', methods=('GET', 'POST'))
+@login_required
+def craigslist_jobs():
+    db = get_db()
+    categories = {
+        'pet': 'Community / Pets',
+        'sss': 'For Sale',
+        'zip': 'Free Stuff',
+    }
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'delete':
+            try:
+                job_id = int(request.form.get('job_id', ''))
+            except ValueError:
+                abort(400)
+
+            job = db.execute(
+                'SELECT job_key, name FROM craigslist_jobs WHERE id = ?',
+                (job_id,),
+            ).fetchone()
+            if job is None:
+                abort(404)
+            if job['job_key'] in {'pets', 'surfboards', 'free-stuff'}:
+                flash('Default scheduled jobs cannot be deleted. Disable the job instead.', 'error')
+                return redirect(url_for('control.craigslist_jobs'))
+
+            db.execute('DELETE FROM craigslist_jobs WHERE id = ?', (job_id,))
+            db.commit()
+            flash(f"Deleted Craigslist search job '{job['name']}'.", 'success')
+            return redirect(url_for('control.craigslist_jobs'))
+
+        try:
+            name, term, category, radius, run_times = _job_form_values(request.form)
+        except ValueError as error:
+            flash(str(error), 'error')
+            return redirect(url_for('control.craigslist_jobs'))
+
+        enabled = 1 if request.form.get('enabled') == 'on' else 0
+        if action == 'add':
+            db.execute(
+                'INSERT INTO craigslist_jobs '
+                '(job_key, name, term, category, radius, run_times, enabled) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (uuid4().hex, name, term, category, radius, run_times, enabled),
+            )
+            flash(f"Added Craigslist search job '{name}'.", 'success')
+        elif action == 'update':
+            try:
+                job_id = int(request.form.get('job_id', ''))
+            except ValueError:
+                abort(400)
+            cursor = db.execute(
+                'UPDATE craigslist_jobs SET name = ?, term = ?, category = ?, '
+                'radius = ?, run_times = ?, enabled = ?, '
+                'updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                (name, term, category, radius, run_times, enabled, job_id),
+            )
+            if cursor.rowcount == 0:
+                abort(404)
+            flash(f"Updated Craigslist search job '{name}'.", 'success')
+        else:
+            abort(400)
+
+        db.commit()
+        return redirect(url_for('control.craigslist_jobs'))
+
+    jobs = db.execute(
+        'SELECT id, name, term, category, radius, run_times, enabled, last_run_at '
+        'FROM craigslist_jobs ORDER BY enabled DESC, name COLLATE NOCASE'
+    ).fetchall()
+    return render_template(
+        'blog/craigslist_jobs.html',
+        jobs=jobs,
+        categories=categories,
     )
 
 

@@ -117,3 +117,16 @@ Stores structured Craigslist listing data separately from rendered blog posts. `
 * **blog\_post\_id**: INTEGER (Links the structured listing to its feed post)
 
 `INSERT OR IGNORE` and the unique ID constraint prevent a listing from creating a second Craigslist row or blog post on later scrapes.
+
+#### **10. Entity: craigslist\_jobs**
+
+Stores editable Craigslist search schedules. Startup creates this table for existing databases and seeds the current pet, surfboard, and free-stuff schedules when absent.
+
+* **id**: INTEGER (Primary Key, Autoincrement)
+* **job\_key**: TEXT (Not Null, Unique stable key for seeded jobs)
+* **name**, **term**, **category**, **run\_times**: TEXT
+* **radius**: INTEGER (Search radius in miles)
+* **enabled**: INTEGER (Boolean flag)
+* **last\_run\_at**, **created\_at**, **updated\_at**: TEXT
+
+The scheduler reads enabled rows once per minute, executes due jobs at their configured local times, and records outcomes in `search_query`.

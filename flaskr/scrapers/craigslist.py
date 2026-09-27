@@ -86,6 +86,7 @@ def get_craigslist_listings(
     search_url=None,
     category=None,
     area_label="100 miles of Athens, TX",
+    radius=100,
 ):
     """Scrape recent Craigslist results and return their structured listing data."""
     
@@ -93,7 +94,13 @@ def get_craigslist_listings(
         target_url, _ = urldefrag(search_url)
     else:
         encoded_query = quote_plus(query)
-        target_url = f"{BASE_URL}?query={encoded_query}&search_distance=100&postal=75751"
+        if category == "zip":
+            target_url = (
+                "https://easttexas.craigslist.org/search/zip"
+                f"?query={encoded_query}&search_distance={radius}&postal=75751"
+            )
+        else:
+            target_url = f"{BASE_URL}?query={encoded_query}&search_distance={radius}&postal=75751"
     known_listing_ids = {str(value) for value in (known_listing_ids or set())}
 
     headers = {
@@ -277,6 +284,7 @@ def run_scraper(
     search_url=None,
     category=None,
     area_label="100 miles of Athens, TX",
+    radius=100,
 ):
     print(f"Scraping recent Craigslist listings for '{query}' in {area_label}...")
     app = create_app()
@@ -293,6 +301,7 @@ def run_scraper(
             search_url=search_url,
             category=category,
             area_label=area_label,
+            radius=radius,
         )
         inserted = sum(insert_scraped_post(item, db=db) for item in listings)
         print(f"Stored {inserted} new Craigslist listings.")

@@ -46,6 +46,40 @@ CREATE TABLE craigslist_postings (
 CREATE INDEX idx_craigslist_postings_posted_at
   ON craigslist_postings(posted_at DESC);
 
+CREATE TABLE IF NOT EXISTS craigslist_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_key TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  term TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('pet', 'sss', 'zip')),
+  radius INTEGER NOT NULL DEFAULT 100,
+  run_times TEXT NOT NULL DEFAULT '06:00',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_run_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_craigslist_jobs_enabled
+  ON craigslist_jobs(enabled);
+
+CREATE TABLE IF NOT EXISTS craigslist_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_key TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  term TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('pet', 'sss', 'zip')),
+  radius INTEGER NOT NULL DEFAULT 100,
+  run_times TEXT NOT NULL DEFAULT '06:00',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_run_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_craigslist_jobs_enabled
+  ON craigslist_jobs(enabled);
+
 CREATE TABLE IF NOT EXISTS chart (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at DATETIME DEFAULT (datetime('now', 'localtime')),

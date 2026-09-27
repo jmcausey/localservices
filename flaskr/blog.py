@@ -95,14 +95,40 @@ def index():
         ' WHERE p.status != \'complete\' '
         'AND NOT EXISTS ('
         'SELECT 1 FROM craigslist_postings cp '
-        'WHERE cp.blog_post_id = p.id AND cp.category = \'pet\') '
+        'WHERE cp.blog_post_id = p.id) '
+        'AND CAST(p.body AS TEXT) NOT LIKE \'%View Craigslist Listing%\' '
         'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
         'OR p.status = \'pending\')'
-        ' ORDER BY p.created DESC'
+        ' ORDER BY p.created DESC, p.id DESC'
     ).fetchall()
     
     posts = [decode_post_bytes(p) for p in raw_posts]
-    return render_template('blog/index.html', posts=posts)
+    return render_template('blog/index.html', posts=posts, feed_type='blog')
+
+
+@bp.route('/cl')
+def cl():
+    db = get_db()
+    raw_posts = db.execute(
+        'SELECT DISTINCT p.id, p.title, p.body, p.status, p.created, '
+        'p.author_id, u.username'
+        ' FROM post p JOIN user u ON u.id = p.author_id'
+        ' LEFT JOIN craigslist_postings cp ON cp.blog_post_id = p.id'
+        ' WHERE p.status != \'complete\' '
+        'AND (cp.id IS NOT NULL OR '
+        'CAST(p.body AS TEXT) LIKE \'%View Craigslist Listing%\') '
+        'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
+        'OR p.status = \'pending\')'
+        ' ORDER BY p.created DESC, p.id DESC'
+    ).fetchall()
+
+    posts = [decode_post_bytes(post) for post in raw_posts]
+    return render_template(
+        'blog/index.html',
+        posts=posts,
+        feed_title='Craigslist Listings',
+        feed_type='cl',
+    )
 
 
 @bp.route('/cl-pets')
@@ -116,7 +142,7 @@ def cl_pets():
         ' WHERE cp.category = \'pet\' AND p.status != \'complete\' '
         'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
         'OR p.status = \'pending\')'
-        ' ORDER BY p.created DESC'
+        ' ORDER BY p.created DESC, p.id DESC'
     ).fetchall()
 
     posts = [decode_post_bytes(post) for post in raw_posts]
@@ -124,6 +150,7 @@ def cl_pets():
         'blog/index.html',
         posts=posts,
         feed_title='Craigslist Pets',
+        feed_type='pets',
     )
 
 
@@ -235,7 +262,39 @@ def change_status(id, new_status):
 @bp.route('/api/latest-post-id')
 def latest_post_id():
     db = get_db()
-    row = db.execute('SELECT id FROM post ORDER BY created DESC LIMIT 1').fetchone()
+    feed_type = request.args.get('feed', 'blog')
+    if feed_type == 'cl':
+        sql = (
+            'SELECT p.id FROM post p '
+            'LEFT JOIN craigslist_postings cp ON cp.blog_post_id = p.id '
+            'WHERE p.status != \'complete\' '
+            'AND (cp.id IS NOT NULL OR '
+            'CAST(p.body AS TEXT) LIKE \'%View Craigslist Listing%\') '
+            'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
+            'OR p.status = \'pending\') '
+            'ORDER BY p.created DESC, p.id DESC LIMIT 1'
+        )
+        row = db.execute(sql).fetchone()
+    elif feed_type == 'pets':
+        row = db.execute(
+            'SELECT p.id FROM craigslist_postings cp '
+            'JOIN post p ON p.id = cp.blog_post_id '
+            'WHERE cp.category = \'pet\' AND p.status != \'complete\' '
+            'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
+            'OR p.status = \'pending\') '
+            'ORDER BY p.created DESC, p.id DESC LIMIT 1'
+        ).fetchone()
+    else:
+        row = db.execute(
+            'SELECT p.id FROM post p '
+            'WHERE p.status != \'complete\' '
+            'AND NOT EXISTS (SELECT 1 FROM craigslist_postings cp '
+            'WHERE cp.blog_post_id = p.id) '
+            'AND CAST(p.body AS TEXT) NOT LIKE \'%View Craigslist Listing%\' '
+            'AND (datetime(p.created) >= datetime(\'now\', \'-1 day\') '
+            'OR p.status = \'pending\') '
+            'ORDER BY p.created DESC, p.id DESC LIMIT 1'
+        ).fetchone()
     return jsonify({"latest_id": row['id'] if row else 0})
 
 

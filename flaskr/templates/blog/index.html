@@ -56,7 +56,9 @@
 
 <div class="scrollable-feed-container" id="feed-container">
   <!-- Main container tracking top post ID for automated live checks -->
-  <div id="blog-feed" data-current-top-id="{{ posts[0]['id'] if posts else 0 }}">
+    <div id="blog-feed"
+      data-current-top-id="{{ posts[0]['id'] if posts else 0 }}"
+      data-feed="{{ feed_type or 'blog' }}">
     {% for post in posts %}
       <article class="post">
         <header>
@@ -134,9 +136,10 @@
   if (!feedElement) return;
 
   const currentTopId = parseInt(feedElement.getAttribute("data-current-top-id"), 10) || 0;
+  const feedType = feedElement.getAttribute("data-feed") || "blog";
 
   function pollForUpdates() {
-    fetch("/api/latest-post-id")
+    fetch(`/api/latest-post-id?feed=${encodeURIComponent(feedType)}`)
       .then(response => response.json())
       .then(data => {
         if (data.latest_id && data.latest_id > currentTopId) {

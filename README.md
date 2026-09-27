@@ -4,9 +4,9 @@
 
 ## Core Features
 
-* **Craigslist scraper:** A daily 06:00 scheduler job checks the East Texas community/pets category and saves every new, unique listing returned within the existing 24-hour freshness window in a dedicated SQLite table, with a linked blog post. Craigslist IDs prevent repeated imports. The `/` feed shows posts from the last 24 hours, keeps `pending` posts visible indefinitely, and hides `complete` posts immediately without deleting them.
-* **Pets feed (`/cl-pets`):** Shows linked Craigslist pets posts separately from the general `/` blog feed, using the same visibility and status rules.
-* **Control panel (`/control-panel`):** Runs Craigslist searches and filters stored posts.
+* **Craigslist scheduler:** The CL > Search Jobs page manages daily Craigslist jobs, including the seeded East Texas pets (06:00), surfboards (08:00, 20:00), and free-stuff (08:00, 20:00) schedules. Jobs can be added, edited, and disabled. Unique Craigslist IDs prevent repeated imports.
+* **Craigslist feed (`/cl`):** Shows all linked and legacy Craigslist posts separately from the general `/` blog feed. `/cl-pets` filters the feed to pet-category listings; both routes use the same visibility and status rules.
+* **Control panel (`/control-panel`):** Filters and manages stored blog posts. Scheduled Craigslist jobs are managed separately under CL > Search Jobs.
 * **System logs (`/control-panel/system-logs`):** Displays recent Flask application logs stored in SQLite. The page requires login and supports severity filtering.
 * **Live feed (`/`):** Polls `/api/latest-post-id` every 10 seconds and refreshes when a newer post is available.
 * **Scrolling feed (`/scrolling`):** Displays posts in a continuous scrolling view with hover-to-pause behavior.
@@ -49,13 +49,18 @@
    flask --app flaskr run
    ```
 
-4. **Run the tests:** Install `pytest` if needed, then run:
+4. **Start the scheduler** in another terminal:
+   ```bash
+   python scheduler.py
+   ```
+
+5. **Run the tests:** Install `pytest` if needed, then run:
    ```bash
    python -m pip install pytest
    python -m pytest flaskr/tests -q
    ```
 
-5. **Preview the documentation site:**
+6. **Preview the documentation site:**
    ```bash
    mkdocs serve
    ```

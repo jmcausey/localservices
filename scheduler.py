@@ -18,16 +18,13 @@ if str(flaskr_dir) not in sys.path:
 from flaskr import create_app, get_db
 from scrapers.kevinmd import run_scraper as kevinmd_scraper
 from scrapers.informaticsinc import run_scraper as informaticsinc
-from scrapers.cl_surfboards import run_scraper as clsurfboards
-from scrapers.cl_freestuff import run_scraper as clfreestuff
-from scrapers.craigslist import run_pet_scraper as clpetscraper
+from flaskr.craigslist_jobs import run_due_craigslist_jobs
 from flaskr.weather.tasks import ( 
     fetch_weather, 
     post_weather_updates_from_db
     )
 from flaskr.astronomy.tasks import (
-    post_apod_to_blog, 
-    post_astronomy_data_to_blog
+    post_apod_to_blog,
 )
 
 LOCATIONS_FILE = os.path.expanduser('~/local/data/locations/locations.json')
@@ -43,17 +40,18 @@ def weather_update():
 @repeat(every().day.at("08:00"))
 @repeat(every().day.at("20:00"))
 def daily_update():
-    # Handles fetching data, DB insert, dial image generation, and single blog post
-    post_astronomy_data_to_blog(app, author_id=1)
     informaticsinc()
-    clfreestuff()
-    clsurfboards()
     post_apod_to_blog(app, author_id=1)    
 
 
-@repeat(every().day.at("06:00"))
-def craigslist_pets_daily():
-    clpetscraper()
+def run_craigslist_search_jobs(force=False):
+    with app.app_context():
+        return run_due_craigslist_jobs(get_db(), force=force)
+
+
+@repeat(every().minute)
+def craigslist_search_jobs():
+    run_craigslist_search_jobs()
 
 
 @repeat(every().minute)
@@ -72,13 +70,10 @@ STARTUP_JOBS = [
     ("cleanup_completed_posts", lambda: cleanup_completed_posts()),
     ("weather_update", lambda: weather_update()),
     ("post_apod_to_blog", lambda: post_apod_to_blog(app, author_id=1)),
-    ("post_astronomy_data_to_blog", lambda: post_astronomy_data_to_blog(app, author_id=1)),
     ("post_weather_updates_from_db", lambda: post_weather_updates_from_db(app, author_id=1)),
     ("informaticsinc", lambda: informaticsinc()),
     ("kevinmd_scraper", lambda: kevinmd_scraper()),
-    ("clsurfboards", lambda: clsurfboards()),
-    ("clfreestuff", lambda: clfreestuff()),
-    ("craigslist_pets_daily", lambda: clpetscraper()),
+    ("craigslist_search_jobs", lambda: run_craigslist_search_jobs(force=True)),
 ]
 
 

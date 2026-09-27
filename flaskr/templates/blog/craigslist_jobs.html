@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Craigslist Search Jobs{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<style>
+  .jobs-section {
+    margin: 1.25rem 0;
+  }
+  .jobs-section h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+  }
+  .jobs-form {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 1.5fr) 10rem 7rem minmax(10rem, 1fr) 6rem auto;
+    gap: 0.75rem;
+    align-items: end;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid #cbd5e0;
+  }
+  .jobs-form label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  .jobs-form input,
+  .jobs-form select {
+    width: 100%;
+    min-height: 2.35rem;
+    box-sizing: border-box;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #a0aec0;
+    border-radius: 3px;
+    font: inherit;
+  }
+  .jobs-form input[type="checkbox"] {
+    width: auto;
+    min-height: 1rem;
+    padding: 0;
+  }
+  .jobs-form button {
+    min-height: 2.35rem;
+    border: 1px solid #245c67;
+    border-radius: 3px;
+    padding: 0.4rem 0.75rem;
+    background: #245c67;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+  }
+  .jobs-table-wrap {
+    overflow-x: auto;
+  }
+  .jobs-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+  }
+  .jobs-table th,
+  .jobs-table td {
+    padding: 0.55rem;
+    border-bottom: 1px solid #d9e0e5;
+    text-align: left;
+    vertical-align: middle;
+  }
+  .jobs-table th {
+    color: #39454c;
+    font-size: 0.85rem;
+  }
+  .jobs-table input:not([type="checkbox"]),
+  .jobs-table select {
+    min-width: 7rem;
+    width: 100%;
+    min-height: 2.2rem;
+    box-sizing: border-box;
+    padding: 0.35rem;
+    border: 1px solid #a0aec0;
+    border-radius: 3px;
+    font: inherit;
+  }
+  .jobs-table button {
+    min-height: 2.2rem;
+    border: 1px solid #245c67;
+    border-radius: 3px;
+    padding: 0.35rem 0.7rem;
+    background: #245c67;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+  }
+  .jobs-table button.delete-job {
+    border-color: #a33a32;
+    background: #a33a32;
+  }
+  .jobs-note {
+    color: #4a5568;
+    font-size: 0.9rem;
+  }
+  @media (max-width: 900px) {
+    .jobs-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<section class="jobs-section" aria-labelledby="add-job-heading">
+  <h2 id="add-job-heading">Add a search job</h2>
+  <form class="jobs-form" method="post">
+    <input type="hidden" name="action" value="add">
+    <div>
+      <label for="new-name">Job name</label>
+      <input id="new-name" name="name" required>
+    </div>
+    <div>
+      <label for="new-term">Search term</label>
+      <input id="new-term" name="term" required>
+    </div>
+    <div>
+      <label for="new-category">Category</label>
+      <select id="new-category" name="category">
+        {% for value, label in categories.items() %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="new-radius">Radius (miles)</label>
+      <input id="new-radius" name="radius" type="number" min="5" max="500" value="100" required>
+    </div>
+    <div>
+      <label for="new-times">Daily run times</label>
+      <input id="new-times" name="run_times" value="06:00" placeholder="06:00,18:00" required>
+    </div>
+    <div>
+      <label for="new-enabled">Enabled</label>
+      <input id="new-enabled" name="enabled" type="checkbox" checked>
+    </div>
+    <button type="submit">Add job</button>
+  </form>
+  <p class="jobs-note">Use 24-hour local times separated by commas, for example 06:00,18:00.</p>
+</section>
+
+<section class="jobs-section" aria-labelledby="current-jobs-heading">
+  <h2 id="current-jobs-heading">Scheduled search jobs</h2>
+  {% for job in jobs %}
+    <form id="job-form-{{ job['id'] }}" method="post">
+      <input type="hidden" name="action" value="update">
+      <input type="hidden" name="job_id" value="{{ job['id'] }}">
+    </form>
+  {% endfor %}
+  <div class="jobs-table-wrap">
+    <table class="jobs-table">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Search term</th>
+          <th scope="col">Category</th>
+          <th scope="col">Radius</th>
+          <th scope="col">Daily times</th>
+          <th scope="col">Enabled</th>
+          <th scope="col">Last run</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in jobs %}
+          <tr>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Job name" name="name" value="{{ job['name'] }}" required></td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Search term" name="term" value="{{ job['term'] }}" required></td>
+            <td>
+              <select form="job-form-{{ job['id'] }}" aria-label="Category" name="category">
+                {% for value, label in categories.items() %}
+                  <option value="{{ value }}" {% if job['category'] == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Radius in miles" name="radius" type="number" min="5" max="500" value="{{ job['radius'] }}" required></td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Daily run times" name="run_times" value="{{ job['run_times'] }}" required></td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Enabled" name="enabled" type="checkbox" {% if job['enabled'] %}checked{% endif %}></td>
+            <td>{{ job['last_run_at'] or 'Never' }}</td>
+            <td>
+              <button form="job-form-{{ job['id'] }}" type="submit">Save</button>
+              <form id="delete-job-{{ job['id'] }}" method="post" onsubmit="return confirm('Delete this Craigslist search job?')">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="job_id" value="{{ job['id'] }}">
+              </form>
+              <button class="delete-job" form="delete-job-{{ job['id'] }}" type="submit">Delete</button>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8">No Craigslist search jobs configured.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
