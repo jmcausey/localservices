@@ -4,7 +4,7 @@
 
 ## Core Features
 
-* **Craigslist scheduler:** The CL > Search Jobs page manages daily Craigslist jobs, including the seeded East Texas pets (06:00), surfboards (08:00, 20:00), and free-stuff (08:00, 20:00) schedules. Jobs can be added, edited, and disabled. Unique Craigslist IDs prevent repeated imports.
+* **Craigslist scheduler:** The CL > Search Jobs page manages daily Craigslist searches. Jobs can be added, edited, and disabled. Unique Craigslist IDs prevent repeated imports.
 * **Craigslist feed (`/cl`):** Shows all linked and legacy Craigslist posts separately from the general `/` blog feed. `/cl-pets` filters the feed to pet-category listings; both routes use the same visibility and status rules.
 * **Control panel (`/control-panel`):** Filters and manages stored blog posts. Scheduled Craigslist jobs are managed separately under CL > Search Jobs.
 * **System logs (`/control-panel/system-logs`):** Displays recent Flask application logs stored in SQLite. The page requires login and supports severity filtering.

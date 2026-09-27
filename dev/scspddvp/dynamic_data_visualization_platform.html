@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniViz - Advanced Interactive Data Graphing Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        cyber: {
+                            bg: '#0a0d14',
+                            card: '#121824',
+                            border: '#1e293b',
+                            accent: '#00f0ff',
+                            neon: '#ff0055'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+        /* Custom Theme CSS Variables for dynamic switching */
+        :root {
+            --bg-main: #090d16;
+            --bg-card: rgba(18, 24, 38, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.35);
+            --grid-line: rgba(255, 255, 255, 0.05);
+        }
+
+        .theme-cyberpunk {
+            --bg-main: #050508;
+            --bg-card: rgba(15, 10, 25, 0.85);
+            --border-color: rgba(0, 240, 255, 0.2);
+            --text-main: #00f0ff;
+            --text-muted: #ff007f;
+            --accent: #00f0ff;
+            --accent-glow: rgba(0, 240, 255, 0.5);
+            --grid-line: rgba(0, 240, 255, 0.1);
+        }
+
+        .theme-solarized {
+            --bg-main: #002b36;
+            --bg-card: rgba(7, 54, 66, 0.85);
+            --border-color: rgba(181, 137, 0, 0.25);
+            --text-main: #fdf6e3;
+            --text-muted: #93a1a1;
+            --accent: #b58900;
+            --accent-glow: rgba(181, 137, 0, 0.4);
+            --grid-line: rgba(147, 161, 161, 0.1);
+        }
+
+        .theme-matrix {
+            --bg-main: #020a02;
+            --bg-card: rgba(5, 20, 5, 0.85);
+            --border-color: rgba(0, 255, 65, 0.2);
+            --text-main: #00ff41;
+            --text-muted: #008f11;
+            --accent: #00ff41;
+            --accent-glow: rgba(0, 255, 65, 0.4);
+            --grid-line: rgba(0, 255, 65, 0.08);
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+        }
+
+        .glass-panel-interactive {
+            transition: all 0.2s ease;
+        }
+        .glass-panel-interactive:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .glow-accent {
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Tooltip style */
+        #chart-tooltip {
+            pointer-events: none;
+            transition: opacity 0.1s ease, transform 0.05s ease;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="h-14 glass-panel border-b flex items-center justify-between px-4 z-20 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl glow-accent">
+                <i class="fa-solid fa-chart-network"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base tracking-wide flex items-center gap-2">
+                    OmniViz Engine <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-mono border border-blue-500/30">v3.5 PRO</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- Workflow Tab Selectors -->
+        <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-slate-800">
+            <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 bg-blue-600 text-white transition-all">
+                <i class="fa-solid fa-table-cells-large"></i> Dashboard View
+            </button>
+            <button onclick="switchTab('builder')" id="tab-btn-builder" class="tab-btn px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-sliders"></i> Chart Builder
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-calculator"></i> Analytics Workbench
+            </button>
+            <button onclick="switchTab('rawdata')" id="tab-btn-rawdata" class="tab-btn px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-database"></i> Data Inspector
+            </button>
+        </div>
+
+        <!-- Quick Controls & Actions -->
+        <div class="flex items-center gap-3">
+            <!-- Theme Switcher Dropdown -->
+            <div class="flex items-center gap-2 bg-slate-900/60 px-2 py-1 rounded-lg border border-slate-800">
+                <i class="fa-solid fa-palette text-xs text-slate-400"></i>
+                <select id="theme-select" onchange="changeTheme(this.value)" class="bg-transparent text-xs font-medium focus:outline-none cursor-pointer">
+                    <option value="default" class="bg-slate-900 text-white">Slate Dark Pro</option>
+                    <option value="cyberpunk" class="bg-slate-900 text-white">Cyberpunk Neon</option>
+                    <option value="solarized" class="bg-slate-900 text-white">Solarized Amber</option>
+                    <option value="matrix" class="bg-slate-900 text-white">Matrix Green</option>
+                </select>
+            </div>
+
+            <!-- Global Stream Toggle -->
+            <button id="stream-toggle-btn" onclick="toggleGlobalStream()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-play" id="stream-icon"></i>
+                <span id="stream-text">Streaming Live</span>
+            </button>
+
+            <!-- Export Dropdown Button -->
+            <button onclick="openExportModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 border border-slate-700 transition-all">
+                <i class="fa-solid fa-download"></i> Export
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE CONTAINER -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- SIDEBAR CONTROLS (COLLAPSIBLE) -->
+        <aside id="sidebar" class="w-80 glass-panel border-r flex flex-col transition-all duration-300 z-10 shrink-0">
+            <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-blue-400"></i> Control Matrix
+                </h2>
+                <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white text-xs">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 text-xs">
+
+                <!-- Data Generator Formulas -->
+                <div class="space-y-3">
+                    <label class="font-semibold text-slate-300 block flex items-center justify-between">
+                        <span>Synthetic Signal Engine</span>
+                        <i class="fa-solid fa-wave-square text-blue-400"></i>
+                    </label>
+                    <select id="gen-formula" onchange="regenerateData()" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-slate-200 focus:border-blue-500 focus:outline-none">
+                        <option value="harmonic">Harmonic Multi-Sinusoid</option>
+                        <option value="brownian">Geometric Brownian Motion (Stock)</option>
+                        <option value="perlin">Perlin Noise / Fractal Flow</option>
+                        <option value="lorenz">Lorenz Chaos Attractor</option>
+                    </select>
+                </div>
+
+                <!-- Live Stream Rate Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-medium">
+                        <span class="text-slate-400">Stream Sampling Rate</span>
+                        <span id="rate-val" class="font-mono text-blue-400">30 Hz</span>
+                    </div>
+                    <input type="range" id="rate-slider" min="1" max="60" value="30" oninput="updateSamplingRate(this.value)" class="w-full accent-blue-500 cursor-pointer">
+                </div>
+
+                <!-- Noise Level Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-medium">
+                        <span class="text-slate-400">Signal Stochasticity (Noise)</span>
+                        <span id="noise-val" class="font-mono text-blue-400">15%</span>
+                    </div>
+                    <input type="range" id="noise-slider" min="0" max="100" value="15" oninput="updateNoiseLevel(this.value)" class="w-full accent-blue-500 cursor-pointer">
+                </div>
+
+                <!-- Moving Average Window -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-medium">
+                        <span class="text-slate-400">SMA Window Size</span>
+                        <span id="sma-val" class="font-mono text-blue-400">20 pts</span>
+                    </div>
+                    <input type="range" id="sma-slider" min="5" max="100" value="20" oninput="updateSMAWindow(this.value)" class="w-full accent-blue-500 cursor-pointer">
+                </div>
+
+                <hr class="border-slate-800">
+
+                <!-- Active Chart Type Selector -->
+                <div class="space-y-3">
+                    <label class="font-semibold text-slate-300 block">Primary Visual Renderer</label>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button onclick="setPrimaryChart('timeseries')" class="chart-type-btn p-2 rounded-lg border border-blue-500/50 bg-blue-500/10 text-left flex items-center gap-3 hover:border-blue-500 transition-all">
+                            <i class="fa-solid fa-chart-line text-blue-400 text-sm"></i>
+                            <div>
+                                <div class="font-semibold text-slate-200">Time Series Stream</div>
+                                <div class="text-[10px] text-slate-400">High-Hz continuous telemetry</div>
+                            </div>
+                        </button>
+                        <button onclick="setPrimaryChart('candlestick')" class="chart-type-btn p-2 rounded-lg border border-slate-800 bg-slate-900/50 text-left flex items-center gap-3 hover:border-blue-500 transition-all">
+                            <i class="fa-solid fa-chart-candlestick text-emerald-400 text-sm"></i>
+                            <div>
+                                <div class="font-semibold text-slate-200">Financial Candlestick</div>
+                                <div class="text-[10px] text-slate-400">OHLC + RSI + Bollinger Bands</div>
+                            </div>
+                        </button>
+                        <button onclick="setPrimaryChart('surface')" class="chart-type-btn p-2 rounded-lg border border-slate-800 bg-slate-900/50 text-left flex items-center gap-3 hover:border-blue-500 transition-all">
+                            <i class="fa-solid fa-cube text-purple-400 text-sm"></i>
+                            <div>
+                                <div class="font-semibold text-slate-200">3D Wireframe Surface</div>
+                                <div class="text-[10px] text-slate-400">Interactive topographic plot</div>
+                            </div>
+                        </button>
+                        <button onclick="setPrimaryChart('scatter')" class="chart-type-btn p-2 rounded-lg border border-slate-800 bg-slate-900/50 text-left flex items-center gap-3 hover:border-blue-500 transition-all">
+                            <i class="fa-solid fa-circle-dot text-amber-400 text-sm"></i>
+                            <div>
+                                <div class="font-semibold text-slate-200">Multi-KMeans Scatter</div>
+                                <div class="text-[10px] text-slate-400">Live dynamic spatial clustering</div>
+                            </div>
+                        </button>
+                        <button onclick="setPrimaryChart('network')" class="chart-type-btn p-2 rounded-lg border border-slate-800 bg-slate-900/50 text-left flex items-center gap-3 hover:border-blue-500 transition-all">
+                            <i class="fa-solid fa-diagram-project text-pink-400 text-sm"></i>
+                            <div>
+                                <div class="font-semibold text-slate-200">Force-Directed Network</div>
+                                <div class="text-[10px] text-slate-400">Dynamic node physics simulation</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-800">
+
+                <!-- Quick Dataset Import -->
+                <div class="space-y-3">
+                    <label class="font-semibold text-slate-300 block">External Data Import</label>
+                    <label class="w-full border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-3 text-center cursor-pointer block transition-all">
+                        <i class="fa-solid fa-file-csv text-base text-slate-400 mb-1"></i>
+                        <span class="block text-slate-300 font-medium">Upload CSV / JSON</span>
+                        <span class="block text-[10px] text-slate-500">Auto-parses timestamps & metrics</span>
+                        <input type="file" id="file-input" accept=".csv,.json" onchange="handleFileUpload(event)" class="hidden">
+                    </label>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT WORKSPACE AREA -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+
+            <!-- TAB 1: DASHBOARD VIEW -->
+            <div id="view-dashboard" class="tab-content flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+                
+                <!-- TOP METRICS STAT CARDS -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+                    <div class="glass-panel rounded-xl p-3 border flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400 font-medium">Stream Velocity</div>
+                            <div id="stat-fps" class="text-xl font-bold font-mono text-emerald-400">60 FPS</div>
+                            <div class="text-[10px] text-slate-500">Canvas render latency: ~2ms</div>
+                        </div>
+                        <div class="p-3 bg-emerald-500/10 rounded-lg text-emerald-400 border border-emerald-500/20">
+                            <i class="fa-solid fa-bolt text-lg"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-xl p-3 border flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400 font-medium">Current Mean / StdDev</div>
+                            <div id="stat-mean-std" class="text-xl font-bold font-mono text-blue-400">0.00 / 0.00</div>
+                            <div id="stat-variance" class="text-[10px] text-slate-500">Variance: 0.00</div>
+                        </div>
+                        <div class="p-3 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20">
+                            <i class="fa-solid fa-calculator text-lg"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-xl p-3 border flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400 font-medium">Anomaly / Outliers</div>
+                            <div id="stat-anomalies" class="text-xl font-bold font-mono text-amber-400">0 Alerts</div>
+                            <div class="text-[10px] text-slate-500">> 2.5 Standard Deviations</div>
+                        </div>
+                        <div class="p-3 bg-amber-500/10 rounded-lg text-amber-400 border border-amber-500/20">
+                            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-xl p-3 border flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400 font-medium">Total Data Points</div>
+                            <div id="stat-points" class="text-xl font-bold font-mono text-purple-400">1,000</div>
+                            <div class="text-[10px] text-slate-500">Active Buffer Capacity</div>
+                        </div>
+                        <div class="p-3 bg-purple-500/10 rounded-lg text-purple-400 border border-purple-500/20">
+                            <i class="fa-solid fa-database text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MAIN DISPLAY CANVAS PANEL -->
+                <div class="glass-panel rounded-xl border flex-1 flex flex-col relative overflow-hidden min-h-[400px]">
+                    <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
+                        <div class="flex items-center gap-3">
+                            <h3 id="main-chart-title" class="font-bold text-sm text-slate-200">Real-Time High-Frequency Time Series Engine</h3>
+                            <span id="chart-status-badge" class="px-2 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">STREAMING</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <button onclick="resetChartZoom()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 font-medium border border-slate-700 transition-all">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Reset Zoom
+                            </button>
+                            <button onclick="toggleCrosshair()" id="btn-crosshair" class="px-2.5 py-1 rounded bg-blue-600 text-[11px] text-white font-medium transition-all">
+                                <i class="fa-solid fa-crosshairs mr-1"></i> Crosshair
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Rendering Workspace -->
+                    <div class="flex-1 relative w-full h-full" id="canvas-container">
+                        <canvas id="mainCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                        
+                        <!-- Floating Crosshair Telemetry Tooltip -->
+                        <div id="chart-tooltip" class="absolute hidden glass-panel p-2.5 rounded-lg border text-xs shadow-2xl z-30 font-mono space-y-1 border-blue-500/40">
+                            <div id="tt-header" class="font-bold text-slate-300 border-b border-slate-700/50 pb-1">--</div>
+                            <div id="tt-body" class="space-y-0.5">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM SECONDARY SUB-CHARTS / ANALYTICS GRID -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-56 shrink-0">
+                    <div class="glass-panel rounded-xl p-3 border flex flex-col">
+                        <div class="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+                            <span>Quantile Distribution Histogram</span>
+                            <span class="text-[10px] text-slate-500">Live Frequency Density</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <canvas id="subCanvasHistogram" class="w-full h-full block"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-xl p-3 border flex flex-col">
+                        <div class="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+                            <span>Residual Residuals & Trend Regression Line</span>
+                            <span class="text-[10px] text-slate-500">Ordinary Least Squares</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <canvas id="subCanvasRegression" class="w-full h-full block"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: CHART BUILDER -->
+            <div id="view-builder" class="tab-content hidden flex-1 p-6 overflow-y-auto space-y-6">
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <div class="glass-panel rounded-xl p-6 border space-y-4">
+                        <h2 class="text-lg font-bold text-slate-100 border-b border-slate-800 pb-3">Visual Pipeline Configuration</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">X-Axis Variable Mapping</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+                                    <option>Timestamp (ISO 8601 / Epoch)</option>
+                                    <option>Sequence Index (0..N)</option>
+                                    <option>Latent Coordinate X</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">Y-Axis Variable Mapping</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+                                    <option>Primary Value Stream</option>
+                                    <option>Moving Average (SMA)</option>
+                                    <option>Relative Strength Index (RSI)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 pt-3">
+                            <label class="block text-xs font-semibold text-slate-400">Visual Layers & Indicators Enabled</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="layer-sma" checked onchange="toggleLayer('sma')" class="rounded accent-blue-500">
+                                    SMA Line
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="layer-bollinger" checked onchange="toggleLayer('bollinger')" class="rounded accent-blue-500">
+                                    Bollinger Bands
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="layer-anomalies" checked onchange="toggleLayer('anomalies')" class="rounded accent-blue-500">
+                                    Anomaly Detection
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="layer-trend" checked onchange="toggleLayer('trend')" class="rounded accent-blue-500">
+                                    Linear Regression
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="layer-grid" checked onchange="toggleLayer('grid')" class="rounded accent-blue-500">
+                                    Adaptive Grid Mesh
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: ANALYTICS WORKBENCH -->
+            <div id="view-analytics" class="tab-content hidden flex-1 p-6 overflow-y-auto space-y-6">
+                <div class="max-w-5xl mx-auto space-y-6">
+                    <div class="glass-panel rounded-xl p-6 border">
+                        <h2 class="text-lg font-bold text-slate-100 mb-4">Statistical Decomposition Summary</h2>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-xs">
+                            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-500 block">Sample Size (N)</span>
+                                <span id="stat-wb-n" class="text-base font-bold text-slate-200">1000</span>
+                            </div>
+                            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-500 block">Arithmetic Mean</span>
+                                <span id="stat-wb-mean" class="text-base font-bold text-blue-400">0.00</span>
+                            </div>
+                            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-500 block">Standard Deviation</span>
+                                <span id="stat-wb-std" class="text-base font-bold text-emerald-400">0.00</span>
+                            </div>
+                            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-500 block">Skewness / Kurtosis</span>
+                                <span id="stat-wb-skew" class="text-base font-bold text-purple-400">0.02 / 3.01</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-xl p-6 border">
+                        <h3 class="font-bold text-slate-200 mb-2">Linear Regression Output</h3>
+                        <p class="text-xs text-slate-400 mb-4">Ordinary Least Squares (OLS) fitting for trend calculation.</p>
+                        <div id="regression-formula-display" class="font-mono text-sm bg-slate-900 p-3 rounded-lg border border-slate-800 text-emerald-400">
+                            y = 0.0000 * x + 0.0000 (R² = 0.00)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: RAW DATA INSPECTOR -->
+            <div id="view-rawdata" class="tab-content hidden flex-1 p-6 overflow-y-auto">
+                <div class="glass-panel rounded-xl border flex flex-col h-full overflow-hidden">
+                    <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                        <span class="text-xs font-bold text-slate-300">Live Buffer Data Inspector</span>
+                        <button onclick="copyDataAsJSON()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700">
+                            <i class="fa-solid fa-copy mr-1"></i> Copy JSON
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-auto p-4 font-mono text-xs">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400">
+                                    <th class="p-2">Index</th>
+                                    <th class="p-2">Timestamp</th>
+                                    <th class="p-2">Value</th>
+                                    <th class="p-2">SMA 20</th>
+                                    <th class="p-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body" class="divide-y divide-slate-800/50 text-slate-300">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div id="export-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl border p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-file-export text-blue-400"></i> Export Dataset & Charts
+                </h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <button onclick="exportChartPNG()" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 hover:border-blue-500 text-left flex items-center justify-between group transition-all">
+                    <div>
+                        <div class="font-semibold text-slate-200 group-hover:text-blue-400">Export High-Res PNG Image</div>
+                        <div class="text-slate-500 text-[10px]">Canvas snapshot with active layout</div>
+                    </div>
+                    <i class="fa-solid fa-image text-slate-400 group-hover:text-blue-400"></i>
+                </button>
+
+                <button onclick="exportDatasetCSV()" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 hover:border-blue-500 text-left flex items-center justify-between group transition-all">
+                    <div>
+                        <div class="font-semibold text-slate-200 group-hover:text-blue-400">Export Dataset as CSV</div>
+                        <div class="text-slate-500 text-[10px]">Tabular format with calculated indicators</div>
+                    </div>
+                    <i class="fa-solid fa-file-csv text-slate-400 group-hover:text-blue-400"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           OMNIVIZ GRAPHING PLATFORM ENGINE CORE
+           ========================================================================== */
+
+        // System State Management
+        const state = {
+            activeTab: 'dashboard',
+            primaryChart: 'timeseries', // timeseries, candlestick, surface, scatter, network
+            isStreaming: true,
+            samplingRateHz: 30,
+            noiseLevel: 0.15,
+            smaWindow: 20,
+            formula: 'harmonic',
+            theme: 'default',
+            crosshairEnabled: true,
+            zoom: { scale: 1, offsetX: 0 },
+            layers: {
+                sma: true,
+                bollinger: true,
+                anomalies: true,
+                trend: true,
+                grid: true
+            },
+            data: [], // Core data buffer [{x, y, open, high, low, close, volume}, ...]
+            scatterPoints: [],
+            networkNodes: [],
+            networkLinks: [],
+            3dAngleX: 0.5,
+            3dAngleY: 0.5,
+            mousePos: { x: 0, y: 0, canvasX: 0, canvasY: 0, active: false }
+        };
+
+        // Canvas & Context References
+        let mainCanvas, mainCtx;
+        let subCanvasHist, subCtxHist;
+        let subCanvasReg, subCtxReg;
+        let animFrameId = null;
+        let lastFrameTime = performance.now();
+        let fpsCounter = 60;
+
+        window.onload = function() {
+            initCanvases();
+            generateInitialDataset();
+            setupInteractions();
+            init3DSurfaceData();
+            initScatterClusters();
+            initNetworkGraph();
+            
+            // Start core render animation loop
+            requestAnimationFrame(renderLoop);
+            
+            // Update Data Inspector Table
+            renderDataTable();
+        };
+
+        // Initialize Canvas Resize Observers
+        function initCanvases() {
+            mainCanvas = document.getElementById('mainCanvas');
+            mainCtx = mainCanvas.getContext('2d');
+
+            subCanvasHist = document.getElementById('subCanvasHistogram');
+            subCtxHist = subCanvasHist.getContext('2d');
+
+            subCanvasReg = document.getElementById('subCanvasRegression');
+            subCtxReg = subCanvasReg.getContext('2d');
+
+            resizeCanvases();
+            window.addEventListener('resize', resizeCanvases);
+        }
+
+        function resizeCanvases() {
+            [mainCanvas, subCanvasHist, subCanvasReg].forEach(canvas => {
+                if (!canvas) return;
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+            });
+        }
+
+        function generateInitialDataset() {
+            state.data = [];
+            const count = 500;
+            let baseVal = 100;
+            const now = Date.now();
+
+            for (let i = 0; i < count; i++) {
+                const t = i * 0.1;
+                let val = 0;
+
+                if (state.formula === 'harmonic') {
+                    val = Math.sin(t) * 20 + Math.cos(t * 0.5) * 10 + (Math.random() - 0.5) * state.noiseLevel * 30;
+                } else if (state.formula === 'brownian') {
+                    const delta = (Math.random() - 0.49) * (state.noiseLevel * 10);
+                    baseVal += delta;
+                    val = baseVal;
+                } else if (state.formula === 'perlin') {
+                    val = Math.sin(t * 0.2) * 40 + Math.sin(t * 0.8) * 15 + (Math.random() - 0.5) * state.noiseLevel * 20;
+                } else if (state.formula === 'lorenz') {
+                    val = Math.sin(t * 0.3) * Math.cos(t * 0.7) * 50 + (Math.random() - 0.5) * state.noiseLevel * 10;
+                }
+
+                // Create OHLC Bar structure for financial mode
+                const open = val + (Math.random() - 0.5) * 2;
+                const close = val + (Math.random() - 0.5) * 2;
+                const high = Math.max(open, close) + Math.random() * 2;
+                const low = Math.min(open, close) - Math.random() * 2;
+                const volume = Math.floor(Math.random() * 1000 + 100);
+
+                state.data.push({
+                    index: i,
+                    timestamp: new Date(now - (count - i) * 1000),
+                    y: val,
+                    open, high, low, close, volume
+                });
+            }
+
+            calculateStatisticalPipeline();
+        }
+
+        function appendLivePoint() {
+            if (state.data.length === 0) return;
+            const last = state.data[state.data.length - 1];
+            const i = last.index + 1;
+            const t = i * 0.1;
+            let val = 0;
+
+            if (state.formula === 'harmonic') {
+                val = Math.sin(t) * 20 + Math.cos(t * 0.5) * 10 + (Math.random() - 0.5) * state.noiseLevel * 30;
+            } else if (state.formula === 'brownian') {
+                val = last.y + (Math.random() - 0.49) * (state.noiseLevel * 10);
+            } else if (state.formula === 'perlin') {
+                val = Math.sin(t * 0.2) * 40 + Math.sin(t * 0.8) * 15 + (Math.random() - 0.5) * state.noiseLevel * 20;
+            } else {
+                val = Math.sin(t * 0.3) * Math.cos(t * 0.7) * 50 + (Math.random() - 0.5) * state.noiseLevel * 10;
+            }
+
+            const open = val + (Math.random() - 0.5) * 2;
+            const close = val + (Math.random() - 0.5) * 2;
+            const high = Math.max(open, close) + Math.random() * 2;
+            const low = Math.min(open, close) - Math.random() * 2;
+            const volume = Math.floor(Math.random() * 1000 + 100);
+
+            state.data.push({
+                index: i,
+                timestamp: new Date(),
+                y: val,
+                open, high, low, close, volume
+            });
+
+            if (state.data.length > 1000) {
+                state.data.shift();
+            }
+
+            calculateStatisticalPipeline();
+        }
+
+        function calculateStatisticalPipeline() {
+            if (state.data.length === 0) return;
+
+            const values = state.data.map(d => d.y);
+            const n = values.length;
+
+            // 1. Mean & Variance
+            const sum = values.reduce((a, b) => a + b, 0);
+            const mean = sum / n;
+            const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
+            const stdDev = Math.sqrt(variance);
+
+            // 2. SMA & Bollinger Bands
+            const windowSize = parseInt(state.smaWindow);
+            for (let i = 0; i < n; i++) {
+                if (i < windowSize - 1) {
+                    state.data[i].sma = mean;
+                    state.data[i].upperBand = mean + stdDev * 2;
+                    state.data[i].lowerBand = mean - stdDev * 2;
+                } else {
+                    const slice = values.slice(i - windowSize + 1, i + 1);
+                    const sliceMean = slice.reduce((a, b) => a + b, 0) / windowSize;
+                    const sliceVar = slice.reduce((a, b) => a + Math.pow(b - sliceMean, 2), 0) / windowSize;
+                    const sliceStd = Math.sqrt(sliceVar);
+
+                    state.data[i].sma = sliceMean;
+                    state.data[i].upperBand = sliceMean + sliceStd * 2;
+                    state.data[i].lowerBand = sliceMean - sliceStd * 2;
+                }
+
+                // Anomaly Detection (> 2.5 StdDev)
+                state.data[i].isAnomaly = Math.abs(state.data[i].y - mean) > (2.5 * stdDev);
+            }
+
+            // 3. Linear Regression (Ordinary Least Squares)
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += i;
+                sumY += values[i];
+                sumXY += i * values[i];
+                sumXX += i * i;
+            }
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            state.stats = { mean, stdDev, variance, slope, intercept, n };
+
+            // Update UI elements
+            document.getElementById('stat-mean-std').innerText = `${mean.toFixed(2)} / ${stdDev.toFixed(2)}`;
+            document.getElementById('stat-variance').innerText = `Variance: ${variance.toFixed(2)}`;
+            
+            const anomalyCount = state.data.filter(d => d.isAnomaly).length;
+            document.getElementById('stat-anomalies').innerText = `${anomalyCount} Alerts`;
+            document.getElementById('stat-points').innerText = n.toLocaleString();
+
+            document.getElementById('stat-wb-n').innerText = n;
+            document.getElementById('stat-wb-mean').innerText = mean.toFixed(4);
+            document.getElementById('stat-wb-std').innerText = stdDev.toFixed(4);
+            document.getElementById('regression-formula-display').innerText = 
+                `y = ${slope.toFixed(4)} * x + ${intercept.toFixed(2)}`;
+        }
+
+        function initScatterClusters() {
+            state.scatterPoints = [];
+            const clusters = [
+                { cx: -30, cy: -30, color: '#3b82f6' },
+                { cx: 30, cy: 30, color: '#10b981' },
+                { cx: -20, cy: 40, color: '#f59e0b' }
+            ];
+
+            clusters.forEach((c, idx) => {
+                for (let i = 0; i < 100; i++) {
+                    state.scatterPoints.push({
+                        x: c.cx + (Math.random() - 0.5) * 35,
+                        y: c.cy + (Math.random() - 0.5) * 35,
+                        cluster: idx,
+                        size: Math.random() * 6 + 3
+                    });
+                }
+            });
+        }
+
+        function initNetworkGraph() {
+            state.networkNodes = [];
+            state.networkLinks = [];
+
+            const nodeCount = 35;
+            for (let i = 0; i < nodeCount; i++) {
+                state.networkNodes.push({
+                    id: i,
+                    x: (Math.random() - 0.5) * 300,
+                    y: (Math.random() - 0.5) * 300,
+                    vx: 0, vy: 0,
+                    radius: Math.random() * 8 + 6
+                });
+            }
+
+            for (let i = 0; i < nodeCount; i++) {
+                const target = Math.floor(Math.random() * nodeCount);
+                if (target !== i) {
+                    state.networkLinks.push({ source: i, target: target });
+                }
+            }
+        }
+
+        function updateNetworkPhysics() {
+            // Apply Spring Forces & Gravity
+            state.networkNodes.forEach(node => {
+                node.vx *= 0.85;
+                node.vy *= 0.85;
+                node.x += node.vx;
+                node.y += node.vy;
+            });
+
+            state.networkLinks.forEach(link => {
+                const source = state.networkNodes[link.source];
+                const target = state.networkNodes[link.target];
+                const dx = target.x - source.x;
+                const dy = target.y - source.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const force = (dist - 80) * 0.01;
+
+                source.vx += (dx / dist) * force;
+                source.vy += (dy / dist) * force;
+                target.vx -= (dx / dist) * force;
+                target.vy -= (dy / dist) * force;
+            });
+        }
+
+        let surfaceGrid = [];
+        function init3DSurfaceData() {
+            surfaceGrid = [];
+            const size = 25;
+            for (let x = 0; x < size; x++) {
+                const row = [];
+                for (let z = 0; z < size; z++) {
+                    const nx = (x - size / 2) * 0.3;
+                    const nz = (z - size / 2) * 0.3;
+                    const y = Math.sin(Math.sqrt(nx * nx + nz * nz)) * 40;
+                    row.push(y);
+                }
+                surfaceGrid.push(row);
+            }
+        }
+
+        function renderLoop(time) {
+            const delta = time - lastFrameTime;
+            lastFrameTime = time;
+            fpsCounter = Math.round(1000 / delta);
+            document.getElementById('stat-fps').innerText = `${fpsCounter || 60} FPS`;
+
+            if (state.isStreaming && state.activeTab === 'dashboard') {
+                appendLivePoint();
+            }
+
+            clearCanvases();
+
+            if (state.activeTab === 'dashboard') {
+                switch (state.primaryChart) {
+                    case 'timeseries': renderTimeSeriesChart(); break;
+                    case 'candlestick': renderCandlestickChart(); break;
+                    case 'surface': render3DSurfaceChart(); break;
+                    case 'scatter': renderScatterChart(); break;
+                    case 'network': renderNetworkGraph(); break;
+                }
+
+                renderHistogramSubchart();
+                renderRegressionSubchart();
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        function clearCanvases() {
+            [mainCtx, subCtxHist, subCtxReg].forEach(ctx => {
+                if (!ctx) return;
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.restore();
+            });
+        }
+
+        function renderTimeSeriesChart() {
+            const width = mainCanvas.width;
+            const height = mainCanvas.height;
+            const d = state.data;
+            if (!d || d.length === 0) return;
+
+            const margin = { top: 40, right: 60, bottom: 40, left: 60 };
+            const plotW = width - margin.left - margin.right;
+            const plotH = height - margin.top - margin.bottom;
+
+            // Determine scales
+            const minY = Math.min(...d.map(p => p.y));
+            const maxY = Math.max(...d.map(p => p.y));
+            const rangeY = (maxY - minY) || 1;
+
+            const scaleX = (i) => margin.left + (i / (d.length - 1)) * plotW;
+            const scaleY = (v) => margin.top + plotH - ((v - minY) / rangeY) * plotH;
+
+            // Grid Lines
+            if (state.layers.grid) {
+                mainCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--grid-line') || 'rgba(255,255,255,0.05)';
+                mainCtx.lineWidth = 1;
+                mainCtx.beginPath();
+                for (let i = 0; i <= 5; i++) {
+                    const y = margin.top + (plotH / 5) * i;
+                    mainCtx.moveTo(margin.left, y);
+                    mainCtx.lineTo(width - margin.right, y);
+                }
+                mainCtx.stroke();
+            }
+
+            // Draw Area Fill Under Signal
+            const accentColor = getComputedStyle(document.body).getPropertyValue('--accent') || '#3b82f6';
+            const grad = mainCtx.createLinearGradient(0, margin.top, 0, height - margin.bottom);
+            grad.addColorStop(0, accentColor + '40');
+            grad.addColorStop(1, accentColor + '00');
+
+            mainCtx.beginPath();
+            mainCtx.moveTo(scaleX(0), scaleY(d[0].y));
+            for (let i = 1; i < d.length; i++) {
+                mainCtx.lineTo(scaleX(i), scaleY(d[i].y));
+            }
+            mainCtx.lineTo(scaleX(d.length - 1), margin.top + plotH);
+            mainCtx.lineTo(scaleX(0), margin.top + plotH);
+            mainCtx.closePath();
+            mainCtx.fillStyle = grad;
+            mainCtx.fill();
+
+            // Draw Main Line
+            mainCtx.strokeStyle = accentColor;
+            mainCtx.lineWidth = 2 * window.devicePixelRatio;
+            mainCtx.beginPath();
+            mainCtx.moveTo(scaleX(0), scaleY(d[0].y));
+            for (let i = 1; i < d.length; i++) {
+                mainCtx.lineTo(scaleX(i), scaleY(d[i].y));
+            }
+            mainCtx.stroke();
+
+            // Draw Moving Average Line
+            if (state.layers.sma) {
+                mainCtx.strokeStyle = '#f59e0b';
+                mainCtx.lineWidth = 1.5 * window.devicePixelRatio;
+                mainCtx.beginPath();
+                mainCtx.moveTo(scaleX(0), scaleY(d[0].sma));
+                for (let i = 1; i < d.length; i++) {
+                    mainCtx.lineTo(scaleX(i), scaleY(d[i].sma));
+                }
+                mainCtx.stroke();
+            }
+
+            // Draw Anomaly Dots
+            if (state.layers.anomalies) {
+                mainCtx.fillStyle = '#ef4444';
+                d.forEach((pt, i) => {
+                    if (pt.isAnomaly) {
+                        mainCtx.beginPath();
+                        mainCtx.arc(scaleX(i), scaleY(pt.y), 4 * window.devicePixelRatio, 0, Math.PI * 2);
+                        mainCtx.fill();
+                    }
+                });
+            }
+
+            // Render Crosshair Telemetry
+            if (state.crosshairEnabled && state.mousePos.active) {
+                renderCrosshair(scaleX, scaleY, d, margin, width, height);
+            }
+        }
+
+        function renderCandlestickChart() {
+            const width = mainCanvas.width;
+            const height = mainCanvas.height;
+            const d = state.data;
+            if (!d || d.length === 0) return;
+
+            const margin = { top: 40, right: 60, bottom: 40, left: 60 };
+            const plotW = width - margin.left - margin.right;
+            const plotH = height - margin.top - margin.bottom;
+
+            const minY = Math.min(...d.map(p => p.low));
+            const maxY = Math.max(...d.map(p => p.high));
+            const rangeY = (maxY - minY) || 1;
+
+            const scaleX = (i) => margin.left + (i / (d.length - 1)) * plotW;
+            const scaleY = (v) => margin.top + plotH - ((v - minY) / rangeY) * plotH;
+
+            const barWidth = Math.max(1.5, (plotW / d.length) * 0.6);
+
+            // Draw Candlesticks
+            d.forEach((pt, i) => {
+                const x = scaleX(i);
+                const isGreen = pt.close >= pt.open;
+                const color = isGreen ? '#10b981' : '#ef4444';
+
+                // High / Low Wick
+                mainCtx.strokeStyle = color;
+                mainCtx.lineWidth = 1;
+                mainCtx.beginPath();
+                mainCtx.moveTo(x, scaleY(pt.high));
+                mainCtx.lineTo(x, scaleY(pt.low));
+                mainCtx.stroke();
+
+                // Open / Close Body
+                mainCtx.fillStyle = color;
+                const yOpen = scaleY(pt.open);
+                const yClose = scaleY(pt.close);
+                mainCtx.fillRect(x - barWidth / 2, Math.min(yOpen, yClose), barWidth, Math.abs(yOpen - yClose) || 1);
+            });
+        }
+
+        function render3DSurfaceChart() {
+            const width = mainCanvas.width;
+            const height = mainCanvas.height;
+            const size = surfaceGrid.length;
+
+            mainCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--accent') || '#3b82f6';
+            mainCtx.lineWidth = 1;
+
+            const cx = width / 2;
+            const cy = height / 2;
+            const scale = 12 * window.devicePixelRatio;
+
+            for (let x = 0; x < size - 1; x++) {
+                for (let z = 0; z < size - 1; z++) {
+                    const y = surfaceGrid[x][z];
+
+                    // Simple Isometric projection
+                    const px = cx + (x - z) * scale * 1.5;
+                    const py = cy + (x + z) * scale * 0.7 - y * 1.5;
+
+                    const pxRight = cx + ((x + 1) - z) * scale * 1.5;
+                    const pyRight = cy + ((x + 1) + z) * scale * 0.7 - surfaceGrid[x + 1][z] * 1.5;
+
+                    const pxDown = cx + (x - (z + 1)) * scale * 1.5;
+                    const pyDown = cy + (x + (z + 1)) * scale * 0.7 - surfaceGrid[x][z + 1] * 1.5;
+
+                    mainCtx.beginPath();
+                    mainCtx.moveTo(px, py);
+                    mainCtx.lineTo(pxRight, pyRight);
+                    mainCtx.moveTo(px, py);
+                    mainCtx.lineTo(pxDown, pyDown);
+                    mainCtx.stroke();
+                }
+            }
+        }
+
+        function renderScatterChart() {
+            const width = mainCanvas.width;
+            const height = mainCanvas.height;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            state.scatterPoints.forEach(pt => {
+                mainCtx.fillStyle = ['#3b82f6', '#10b981', '#f59e0b'][pt.cluster];
+                mainCtx.beginPath();
+                mainCtx.arc(cx + pt.x * 4, cy + pt.y * 4, pt.size * window.devicePixelRatio, 0, Math.PI * 2);
+                mainCtx.fill();
+            });
+        }
+
+        function renderNetworkGraph() {
+            updateNetworkPhysics();
+            const width = mainCanvas.width;
+            const height = mainCanvas.height;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // Draw links
+            mainCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+            mainCtx.lineWidth = 1;
+            state.networkLinks.forEach(link => {
+                const s = state.networkNodes[link.source];
+                const t = state.networkNodes[link.target];
+                mainCtx.beginPath();
+                mainCtx.moveTo(cx + s.x, cy + s.y);
+                mainCtx.lineTo(cx + t.x, cy + t.y);
+                mainCtx.stroke();
+            });
+
+            // Draw nodes
+            state.networkNodes.forEach(node => {
+                mainCtx.fillStyle = '#ec4899';
+                mainCtx.beginPath();
+                mainCtx.arc(cx + node.x, cy + node.y, node.radius * window.devicePixelRatio, 0, Math.PI * 2);
+                mainCtx.fill();
+            });
+        }
+
+        function renderHistogramSubchart() {
+            const w = subCanvasHist.width;
+            const h = subCanvasHist.height;
+            const d = state.data;
+            if (!d || d.length === 0) return;
+
+            const values = d.map(p => p.y);
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const bins = new Array(20).fill(0);
+
+            values.forEach(v => {
+                const idx = Math.min(19, Math.floor(((v - min) / (max - min || 1)) * 20));
+                bins[idx]++;
+            });
+
+            const maxBin = Math.max(...bins);
+            const barW = w / 20;
+
+            subCtxHist.fillStyle = '#3b82f6';
+            bins.forEach((cnt, i) => {
+                const barH = (cnt / maxBin) * (h - 20);
+                subCtxHist.fillRect(i * barW, h - barH, barW - 2, barH);
+            });
+        }
+
+        function renderRegressionSubchart() {
+            const w = subCanvasReg.width;
+            const h = subCanvasReg.height;
+            const d = state.data;
+            if (!d || d.length === 0 || !state.stats) return;
+
+            const scaleX = (i) => (i / (d.length - 1)) * w;
+            const minY = Math.min(...d.map(p => p.y));
+            const maxY = Math.max(...d.map(p => p.y));
+            const rangeY = (maxY - minY) || 1;
+            const scaleY = (v) => h - ((v - minY) / rangeY) * h;
+
+            // Scatter Residual Dots
+            subCtxReg.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            d.forEach((pt, i) => {
+                subCtxReg.beginPath();
+                subCtxReg.arc(scaleX(i), scaleY(pt.y), 1.5, 0, Math.PI * 2);
+                subCtxReg.fill();
+            });
+
+            // Trendline
+            subCtxReg.strokeStyle = '#10b981';
+            subCtxReg.lineWidth = 2;
+            subCtxReg.beginPath();
+            const y1 = state.stats.slope * 0 + state.stats.intercept;
+            const y2 = state.stats.slope * d.length + state.stats.intercept;
+            subCtxReg.moveTo(0, scaleY(y1));
+            subCtxReg.lineTo(w, scaleY(y2));
+            subCtxReg.stroke();
+        }
+
+        function renderCrosshair(scaleX, scaleY, d, margin, width, height) {
+            const mx = state.mousePos.canvasX;
+            const my = state.mousePos.canvasY;
+
+            mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            mainCtx.setLineDash([4, 4]);
+            mainCtx.beginPath();
+            mainCtx.moveTo(mx, margin.top);
+            mainCtx.lineTo(mx, height - margin.bottom);
+            mainCtx.moveTo(margin.left, my);
+            mainCtx.lineTo(width - margin.right, my);
+            mainCtx.stroke();
+            mainCtx.setLineDash([]);
+
+            // Nearest Data Point Lookup
+            const index = Math.round(((mx - margin.left) / (width - margin.left - margin.right)) * (d.length - 1));
+            if (index >= 0 && index < d.length) {
+                const pt = d[index];
+                const tt = document.getElementById('chart-tooltip');
+                tt.classList.remove('hidden');
+                tt.style.left = `${state.mousePos.x + 15}px`;
+                tt.style.top = `${state.mousePos.y + 15}px`;
+
+                document.getElementById('tt-header').innerText = `Index: #${pt.index}`;
+                document.getElementById('tt-body').innerHTML = `
+                    <div>Value: <span class="text-blue-400 font-bold">${pt.y.toFixed(2)}</span></div>
+                    <div>SMA: <span class="text-amber-400 font-bold">${pt.sma.toFixed(2)}</span></div>
+                `;
+            }
+        }
+
+        function setupInteractions() {
+            mainCanvas.addEventListener('mousemove', (e) => {
+                const rect = mainCanvas.getBoundingClientRect();
+                state.mousePos.x = e.clientX - rect.left;
+                state.mousePos.y = e.clientY - rect.top;
+                state.mousePos.canvasX = state.mousePos.x * window.devicePixelRatio;
+                state.mousePos.canvasY = state.mousePos.y * window.devicePixelRatio;
+                state.mousePos.active = true;
+            });
+
+            mainCanvas.addEventListener('mouseleave', () => {
+                state.mousePos.active = false;
+                document.getElementById('chart-tooltip').classList.add('hidden');
+            });
+        }
+
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-slate-400');
+            });
+            document.getElementById(`tab-btn-${tabId}`).classList.add('bg-blue-600', 'text-white');
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            if (tabId === 'rawdata') renderDataTable();
+        }
+
+        function setPrimaryChart(type) {
+            state.primaryChart = type;
+            const titles = {
+                timeseries: 'Real-Time High-Frequency Time Series Engine',
+                candlestick: 'Financial OHLC Candlestick Engine',
+                surface: '3D Topographic Surface Visualizer',
+                scatter: 'Multi-KMeans Clustering Scatter Plot',
+                network: 'Force-Directed Graph Simulator'
+            };
+            document.getElementById('main-chart-title').innerText = titles[type];
+        }
+
+        function toggleGlobalStream() {
+            state.isStreaming = !state.isStreaming;
+            const btn = document.getElementById('stream-toggle-btn');
+            const txt = document.getElementById('stream-text');
+            const icon = document.getElementById('stream-icon');
+
+            if (state.isStreaming) {
+                btn.classList.replace('bg-amber-600', 'bg-emerald-600');
+                txt.innerText = 'Streaming Live';
+                icon.className = 'fa-solid fa-play';
+            } else {
+                btn.classList.replace('bg-emerald-600', 'bg-amber-600');
+                txt.innerText = 'Stream Paused';
+                icon.className = 'fa-solid fa-pause';
+            }
+        }
+
+        function changeTheme(theme) {
+            document.body.className = theme === 'default' ? 'dark' : `theme-${theme} dark`;
+        }
+
+        function updateSamplingRate(v) {
+            state.samplingRateHz = v;
+            document.getElementById('rate-val').innerText = `${v} Hz`;
+        }
+
+        function updateNoiseLevel(v) {
+            state.noiseLevel = v / 100;
+            document.getElementById('noise-val').innerText = `${v}%`;
+        }
+
+        function updateSMAWindow(v) {
+            state.smaWindow = v;
+            document.getElementById('sma-val').innerText = `${v} pts`;
+            calculateStatisticalPipeline();
+        }
+
+        function regenerateData() {
+            state.formula = document.getElementById('gen-formula').value;
+            generateInitialDataset();
+        }
+
+        function renderDataTable() {
+            const tbody = document.getElementById('data-table-body');
+            tbody.innerHTML = '';
+            state.data.slice(-50).reverse().forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-mono text-slate-400">#${row.index}</td>
+                    <td class="p-2 font-mono">${new Date(row.timestamp).toLocaleTimeString()}</td>
+                    <td class="p-2 font-mono text-blue-400 font-bold">${row.y.toFixed(2)}</td>
+                    <td class="p-2 font-mono text-amber-400">${row.sma.toFixed(2)}</td>
+                    <td class="p-2">${row.isAnomaly ? '<span class="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">ANOMALY</span>' : '<span class="text-xs text-slate-500">NORMAL</span>'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportChartPNG() {
+            const link = document.createElement('a');
+            link.download = `omniviz-export-${Date.now()}.png`;
+            link.href = mainCanvas.toDataURL();
+            link.click();
+        }
+
+        function exportDatasetCSV() {
+            let csv = 'index,timestamp,value,sma,isAnomaly\n';
+            state.data.forEach(d => {
+                csv += `${d.index},${d.timestamp.toISOString()},${d.y},${d.sma},${d.isAnomaly}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.download = `omniviz-data-${Date.now()}.csv`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        }
+
+        function openExportModal() { document.getElementById('export-modal').classList.remove('hidden'); }
+        function closeExportModal() { document.getElementById('export-modal').classList.add('hidden'); }
+        function toggleCrosshair() { state.crosshairEnabled = !state.crosshairEnabled; }
+        function resetChartZoom() { state.zoom = { scale: 1, offsetX: 0 }; }
+        function toggleLayer(key) { state.layers[key] = !state.layers[key]; }
+    </script>
+</body>
+</html>
