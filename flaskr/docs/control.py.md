@@ -21,9 +21,9 @@ Controller endpoint managing administrative operations via single-route branchin
 #### **CraigslistJobManager (GET, POST /control-panel/cl-jobs)**
 
 * **Guard**: `@login_required`.
-* **GET**: Lists seeded and user-configured jobs with their category, term, radius, enabled state, daily run times, and last-run timestamp.
-* **POST add/update**: Validates the job name, search term, category (`pet`, `sss`, or `zip`), radius (5–500 miles), and one or more local `HH:MM` run times.
-* **Persistence**: Adds or updates rows in `craigslist_jobs`. Defaults are East Texas pets at 06:00 and surfboards/free stuff at 08:00 and 20:00.
+* **GET**: Lists seeded and user-configured jobs with category, term, radius, city/region, Craigslist URL, default-location status, enabled state, daily run times, and last-run timestamp. New jobs are prefilled from the default location.
+* **POST add/update**: Validates the job name, search term, any current East Texas Craigslist category or subcategory code, Craigslist HTTPS location URL, radius (5–500 miles), and one or more local `HH:MM` run times. Selecting “Make default location” changes the single default while each job retains its own location.
+* **Persistence**: Adds or updates rows in `craigslist_jobs`. Defaults are East Texas pets at 06:00 and surfboards/free stuff at 08:00 and 20:00. User-defined Craigslist regions can have separate search jobs.
 * **Scheduler**: Checks enabled jobs each minute, runs due jobs, and records outcomes in `search_query`.
 
 #### **2\. Service: PostQueryEngine (GET Request Branch)**

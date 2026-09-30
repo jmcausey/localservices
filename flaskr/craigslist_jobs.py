@@ -1,23 +1,38 @@
 from datetime import datetime
-from urllib.parse import quote_plus
+from urllib.parse import urlencode, urlparse
 
-from flaskr.scrapers.craigslist import PET_SEARCH_URL, run_scraper
+from flaskr.scrapers.craigslist import run_scraper
+
+AREA_SEARCH_URL = "https://www.craigslist.org/search/area/easttexas"
+DEFAULT_LOCATION_URL = AREA_SEARCH_URL
 
 
 def execute_craigslist_job(job):
     category = job["category"]
-    area_label = "East Texas" if category in {"pet", "zip"} else "100 miles of Athens, TX"
-    search_url = None
-    if category == "pet":
-        search_url = PET_SEARCH_URL.split("#", 1)[0]
-        if job["term"].strip().lower() != "pets":
-            search_url += f"&query={quote_plus(job['term'])}"
+    query = job["term"].strip()
+    location_url = job.get("location_url", DEFAULT_LOCATION_URL)
+    parsed_location = urlparse(location_url)
+    is_area_url = parsed_location.path.startswith("/search/area/")
+    search_params = {}
+    if is_area_url:
+        search_params["cat"] = category
+    search_params["search_distance"] = job["radius"]
+    if not (category == "pet" and query.lower() == "pets"):
+        search_params["query"] = query
+    if is_area_url:
+        search_url = f"{parsed_location.scheme}://{parsed_location.netloc}{parsed_location.path}?{urlencode(search_params)}"
+    else:
+        search_url = (
+            f"{parsed_location.scheme}://{parsed_location.netloc}"
+            f"/search/{category}?{urlencode(search_params)}"
+        )
+
     return run_scraper(
-        query=job["term"],
+        query=query,
         max_results=None,
         search_url=search_url,
         category=category,
-        area_label=area_label,
+        area_label=job.get("location_name", "East Texas"),
         radius=job["radius"],
     )
 

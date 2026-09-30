@@ -30,8 +30,8 @@ LOCATIONS_FILE = os.path.expanduser('~/local/data/locations/locations.json')
 CURRENT_LOCATION = os.environ.get("CURRENT_LOCATION")
 IPGEOLOCATION_API_KEY = os.environ.get("IPGEOLOCATION_API_KEY")
 NASA_API_KEY = os.environ.get("NASA_API_KEY", "DEMO_KEY")
-APOD_URL = f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}"
-
+#APOD_URL = f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}"
+APOD_URL = f"https://science.nasa.gov/wp-json/wp/v2/apod-basic"
 
 # --- 1. Geolocation & SQLite Database Core Helpers ---
 
@@ -165,11 +165,19 @@ def fetch_and_store_astronomy():
 # --- 3. NASA APOD Integration ---
 
 def fetch_apod_data() -> dict | None:
-    """Fetches real-time APOD JSON payload from NASA API."""
+    """Fetches real-time APOD payload from NASA WordPress REST API."""
     try:
         response = requests.get(APOD_URL, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        
+        # WordPress API returns a list of items; return the most recent item
+        if isinstance(data, list):
+            return data[0] if data else None
+        elif isinstance(data, dict):
+            return data
+            
+        return None
     except requests.exceptions.RequestException as e:
         print(f"Error fetching NASA APOD: {e}")
         return None
@@ -181,11 +189,19 @@ def post_apod_to_blog(app, author_id: int = 1) -> bool:
     if not apod:
         return False
 
-    title = f"NASA APOD: {apod.get('title', 'Astronomy Picture of the Day')}"
-    media_type = apod.get("media_type")
-    url = apod.get("url")
-    explanation = apod.get("explanation", "")
-    copyright_info = apod.get("copyright", "").strip()
+    # Extract title from WordPress rendered dict or string
+    raw_title = apod.get("title", {})
+    title_str = raw_title.get("rendered", "Astronomy Picture of the Day") if isinstance(raw_title, dict) else str(raw_title)
+    title = f"NASA APOD: {title_str}"
+
+    # Extract media fields updated in the new API
+    url = apod.get("url") or apod.get("hdurl") or ""
+    media_type = apod.get("media_type", "image" if url.endswith((".jpg", ".png", ".gif", ".jpeg")) else "other")
+    
+    # Extract explanation and credits
+    raw_explanation = apod.get("explanation") or apod.get("description", "")
+    explanation = raw_explanation.get("rendered", "") if isinstance(raw_explanation, dict) else str(raw_explanation)
+    copyright_info = (apod.get("credit") or apod.get("copyright") or "").strip()
 
     if media_type == "image":
         media_html = f'<p><img src="{url}" alt="{title}" class="img-fluid rounded"></p>'
@@ -195,7 +211,7 @@ def post_apod_to_blog(app, author_id: int = 1) -> bool:
         media_html = f'<p><a href="{url}" target="_blank">View Media Content</a></p>'
 
     credit_html = f"<p><em>Credit: {copyright_info}</em></p>" if copyright_info else ""
-    body = f"{media_html}\n{credit_html}\n<p>{explanation}</p>"
+    body = f"{media_html}\n{credit_html}\n{explanation if explanation.startswith('<p>') else f'<p>{explanation}</p>'}"
 
     with app.app_context():
         db = get_db()
@@ -208,7 +224,6 @@ def post_apod_to_blog(app, author_id: int = 1) -> bool:
         create_post(title=title, body=body, author_id=author_id)
         print(f"Successfully published APOD post: '{title}'")
         return True
-
 
 # --- 4. Celestial Dial Plot Generation & Blog Publishing ---
 

@@ -2,10 +2,12 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for
 )
 from datetime import datetime
+from urllib.parse import urlparse
 from uuid import uuid4
 from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
+from flaskr.craigslist_categories import CRAIGSLIST_CATEGORIES, CRAIGSLIST_CATEGORY_GROUPS
 from flaskr.db import get_db
 
 # Define the new blueprint for control panel features
@@ -56,10 +58,28 @@ def _job_form_values(form):
     name = form.get('name', '').strip()
     term = form.get('term', '').strip()
     category = form.get('category', '').strip()
+    location_name = form.get('location_name', '').strip()
+    location_url = form.get('location_url', '').strip().rstrip('/')
     if not name or not term:
         raise ValueError('Job name and search term are required.')
-    if category not in {'pet', 'sss', 'zip'}:
+    if category not in CRAIGSLIST_CATEGORIES:
         raise ValueError('Choose a valid Craigslist category.')
+    parsed_location = urlparse(location_url)
+    hostname = (parsed_location.hostname or '').lower()
+    is_area_url = parsed_location.path.startswith('/search/area/')
+    if (
+        not location_name
+        or parsed_location.scheme != 'https'
+        or not (hostname == 'craigslist.org' or hostname.endswith('.craigslist.org'))
+        or parsed_location.username
+        or parsed_location.password
+        or (hostname in {'craigslist.org', 'www.craigslist.org'} and not is_area_url)
+    ):
+        raise ValueError('Enter a location name and a valid HTTPS Craigslist region URL.')
+    if not is_area_url:
+        location_url = f"{parsed_location.scheme}://{parsed_location.netloc}"
+    else:
+        location_url = f"{parsed_location.scheme}://{parsed_location.netloc}{parsed_location.path.rstrip('/')}"
 
     try:
         radius = int(form.get('radius', '100'))
@@ -80,19 +100,21 @@ def _job_form_values(form):
     if not run_times:
         raise ValueError('Add at least one daily run time in HH:MM format.')
 
-    return name, term, category, radius, ','.join(sorted(run_times))
+    return (
+        name,
+        term,
+        category,
+        radius,
+        ','.join(sorted(run_times)),
+        location_name,
+        location_url,
+    )
 
 
 @bp.route('/control-panel/cl-jobs', methods=('GET', 'POST'))
 @login_required
 def craigslist_jobs():
     db = get_db()
-    categories = {
-        'pet': 'Community / Pets',
-        'sss': 'For Sale',
-        'zip': 'Free Stuff',
-    }
-
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'delete':
@@ -102,33 +124,64 @@ def craigslist_jobs():
                 abort(400)
 
             job = db.execute(
-                'SELECT job_key, name FROM craigslist_jobs WHERE id = ?',
+                'SELECT job_key, name, is_default_location '
+                'FROM craigslist_jobs WHERE id = ?',
                 (job_id,),
             ).fetchone()
             if job is None:
                 abort(404)
-            if job['job_key'] in {'pets', 'surfboards', 'free-stuff'}:
-                flash('Default scheduled jobs cannot be deleted. Disable the job instead.', 'error')
-                return redirect(url_for('control.craigslist_jobs'))
-
             db.execute('DELETE FROM craigslist_jobs WHERE id = ?', (job_id,))
+            if job['is_default_location']:
+                fallback = db.execute(
+                    "SELECT id FROM craigslist_jobs "
+                    "ORDER BY CASE WHEN job_key = 'pets' THEN 0 ELSE 1 END, id "
+                    "LIMIT 1"
+                ).fetchone()
+                if fallback:
+                    db.execute(
+                        'UPDATE craigslist_jobs SET is_default_location = 1 WHERE id = ?',
+                        (fallback['id'],),
+                    )
             db.commit()
             flash(f"Deleted Craigslist search job '{job['name']}'.", 'success')
             return redirect(url_for('control.craigslist_jobs'))
 
         try:
-            name, term, category, radius, run_times = _job_form_values(request.form)
+            (
+                name,
+                term,
+                category,
+                radius,
+                run_times,
+                location_name,
+                location_url,
+            ) = _job_form_values(request.form)
         except ValueError as error:
             flash(str(error), 'error')
             return redirect(url_for('control.craigslist_jobs'))
 
         enabled = 1 if request.form.get('enabled') == 'on' else 0
+        is_default_location = 1 if request.form.get('is_default_location') == 'on' else 0
+        if is_default_location:
+            db.execute('UPDATE craigslist_jobs SET is_default_location = 0')
         if action == 'add':
             db.execute(
                 'INSERT INTO craigslist_jobs '
-                '(job_key, name, term, category, radius, run_times, enabled) '
-                'VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (uuid4().hex, name, term, category, radius, run_times, enabled),
+                '(job_key, name, term, category, radius, run_times, location_name, '
+                'location_url, is_default_location, enabled) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (
+                    uuid4().hex,
+                    name,
+                    term,
+                    category,
+                    radius,
+                    run_times,
+                    location_name,
+                    location_url,
+                    is_default_location,
+                    enabled,
+                ),
             )
             flash(f"Added Craigslist search job '{name}'.", 'success')
         elif action == 'update':
@@ -138,9 +191,21 @@ def craigslist_jobs():
                 abort(400)
             cursor = db.execute(
                 'UPDATE craigslist_jobs SET name = ?, term = ?, category = ?, '
-                'radius = ?, run_times = ?, enabled = ?, '
+                'radius = ?, run_times = ?, location_name = ?, location_url = ?, '
+                'is_default_location = ?, enabled = ?, '
                 'updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                (name, term, category, radius, run_times, enabled, job_id),
+                (
+                    name,
+                    term,
+                    category,
+                    radius,
+                    run_times,
+                    location_name,
+                    location_url,
+                    is_default_location,
+                    enabled,
+                    job_id,
+                ),
             )
             if cursor.rowcount == 0:
                 abort(404)
@@ -152,13 +217,19 @@ def craigslist_jobs():
         return redirect(url_for('control.craigslist_jobs'))
 
     jobs = db.execute(
-        'SELECT id, name, term, category, radius, run_times, enabled, last_run_at '
+        'SELECT id, name, term, category, radius, run_times, location_name, '
+        'location_url, is_default_location, enabled, last_run_at '
         'FROM craigslist_jobs ORDER BY enabled DESC, name COLLATE NOCASE'
     ).fetchall()
+    default_location = db.execute(
+        'SELECT location_name, location_url FROM craigslist_jobs '
+        'WHERE is_default_location = 1 LIMIT 1'
+    ).fetchone()
     return render_template(
         'blog/craigslist_jobs.html',
         jobs=jobs,
-        categories=categories,
+        category_groups=CRAIGSLIST_CATEGORY_GROUPS,
+        default_location=default_location,
     )
 
 

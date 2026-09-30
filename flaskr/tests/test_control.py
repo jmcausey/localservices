@@ -1,11 +1,12 @@
 from datetime import datetime
+import sqlite3
 
 import pytest
 
 from flaskr import create_app
 from flaskr import craigslist_jobs
 from flaskr.craigslist_jobs import run_due_craigslist_jobs
-from flaskr.db import get_db
+from flaskr.db import ensure_craigslist_jobs_table, get_db
 
 
 @pytest.fixture
@@ -66,6 +67,9 @@ def test_craigslist_jobs_page_lists_existing_scheduler_jobs(client):
     assert "Surfboards" in page
     assert "Free Stuff" in page
     assert "Search Jobs" in page
+    assert 'value="ofc"' in page
+    assert 'value="rrr"' in page
+    assert "https://www.craigslist.org/search/area/easttexas" in page
 
 
 def test_control_panel_no_longer_contains_craigslist_search_form(client):
@@ -85,9 +89,12 @@ def test_craigslist_jobs_can_be_added_and_modified(client, app):
             "name": "Kayaks",
             "term": "kayak",
             "category": "sss",
+            "location_name": "Houston",
+            "location_url": "https://houston.craigslist.org",
             "radius": "75",
             "run_times": "07:15, 19:45",
             "enabled": "on",
+            "is_default_location": "on",
         },
     )
     assert response.status_code == 302
@@ -98,12 +105,21 @@ def test_craigslist_jobs_can_be_added_and_modified(client, app):
             "SELECT id FROM craigslist_jobs WHERE job_key != 'pets' "
             "AND name = 'Kayaks'"
         ).fetchone()
+        default_location = db.execute(
+            "SELECT location_name, location_url FROM craigslist_jobs "
+            "WHERE is_default_location = 1"
+        ).fetchone()
+        default_count = db.execute(
+            "SELECT COUNT(*) FROM craigslist_jobs WHERE is_default_location = 1"
+        ).fetchone()[0]
         db.execute(
             "UPDATE craigslist_jobs SET last_run_at = ? WHERE id = ?",
             ("2026-09-26 07:15:00", job["id"]),
         )
         db.commit()
     assert job is not None
+    assert tuple(default_location) == ("Houston", "https://houston.craigslist.org")
+    assert default_count == 1
 
     response = client.post(
         "/control-panel/cl-jobs",
@@ -112,7 +128,9 @@ def test_craigslist_jobs_can_be_added_and_modified(client, app):
             "job_id": job["id"],
             "name": "Kayaks and canoes",
             "term": "canoe",
-            "category": "zip",
+            "category": "ofc",
+            "location_name": "Austin",
+            "location_url": "https://austin.craigslist.org",
             "radius": "80",
             "run_times": "06:30",
         },
@@ -121,16 +139,20 @@ def test_craigslist_jobs_can_be_added_and_modified(client, app):
 
     with app.app_context():
         updated = get_db().execute(
-            "SELECT name, term, category, radius, run_times, enabled, last_run_at "
+            "SELECT name, term, category, radius, run_times, location_name, "
+            "location_url, enabled, is_default_location, last_run_at "
             "FROM craigslist_jobs WHERE id = ?",
             (job["id"],),
         ).fetchone()
     assert tuple(updated) == (
         "Kayaks and canoes",
         "canoe",
-        "zip",
+        "ofc",
         80,
         "06:30",
+        "Austin",
+        "https://austin.craigslist.org",
+        0,
         0,
         "2026-09-26 07:15:00",
     )
@@ -160,7 +182,7 @@ def test_custom_craigslist_job_can_be_deleted(client, app):
     assert deleted is None
 
 
-def test_default_craigslist_job_cannot_be_deleted(client, app):
+def test_default_craigslist_job_can_be_deleted_and_default_moves(client, app):
     with app.app_context():
         job = get_db().execute(
             "SELECT id FROM craigslist_jobs WHERE job_key = 'pets'"
@@ -173,10 +195,15 @@ def test_default_craigslist_job_cannot_be_deleted(client, app):
 
     assert response.status_code == 302
     with app.app_context():
-        still_exists = get_db().execute(
+        db = get_db()
+        deleted = db.execute(
             "SELECT id FROM craigslist_jobs WHERE id = ?", (job["id"],)
         ).fetchone()
-    assert still_exists is not None
+        new_default = db.execute(
+            "SELECT job_key FROM craigslist_jobs WHERE is_default_location = 1"
+        ).fetchone()
+    assert deleted is None
+    assert new_default["job_key"] == "surfboards"
 
 
 def test_pet_job_uses_custom_term_in_category_url(monkeypatch):
@@ -198,9 +225,103 @@ def test_pet_job_uses_custom_term_in_category_url(monkeypatch):
 
     assert call["search_url"] == (
         "https://www.craigslist.org/search/area/easttexas"
-        "?cat=pet&query=golden+retriever"
+        "?cat=pet&search_distance=100&query=golden+retriever"
     )
     assert call["max_results"] is None
+
+
+def test_city_job_uses_its_own_craigslist_region(monkeypatch):
+    call = {}
+
+    def fake_run_scraper(**kwargs):
+        call.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(craigslist_jobs, "run_scraper", fake_run_scraper)
+
+    craigslist_jobs.execute_craigslist_job(
+        {
+            "term": "surfboard",
+            "category": "sss",
+            "radius": 50,
+            "location_name": "Houston",
+            "location_url": "https://houston.craigslist.org",
+        }
+    )
+
+    assert call["search_url"] == (
+        "https://houston.craigslist.org/search/sss"
+        "?search_distance=50&query=surfboard"
+    )
+    assert call["area_label"] == "Houston"
+
+
+def test_job_rejects_non_craigslist_location_url(client, app):
+    response = client.post(
+        "/control-panel/cl-jobs",
+        data={
+            "action": "add",
+            "name": "External location",
+            "term": "item",
+            "category": "sss",
+            "location_name": "External",
+            "location_url": "https://example.com",
+            "radius": "50",
+            "run_times": "08:00",
+        },
+    )
+
+    assert response.status_code == 302
+    with app.app_context():
+        job = get_db().execute(
+            "SELECT id FROM craigslist_jobs WHERE name = 'External location'"
+        ).fetchone()
+    assert job is None
+
+
+def test_existing_three_category_constraint_is_migrated(tmp_path):
+    database_path = tmp_path / "legacy-jobs.sqlite"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE craigslist_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_key TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                term TEXT NOT NULL,
+                category TEXT NOT NULL CHECK (category IN ('pet', 'sss', 'zip')),
+                radius INTEGER NOT NULL DEFAULT 100,
+                run_times TEXT NOT NULL DEFAULT '06:00',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                last_run_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.execute(
+            "INSERT INTO craigslist_jobs "
+                "(job_key, name, term, category) VALUES ('pets', 'Pets', 'pets', 'pet')"
+        )
+
+    ensure_craigslist_jobs_table(str(database_path))
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "INSERT INTO craigslist_jobs "
+            "(job_key, name, term, category) VALUES ('admin', 'Admin', 'admin', 'ofc')"
+        )
+        categories = connection.execute(
+            "SELECT job_key, category, location_name, location_url, is_default_location "
+            "FROM craigslist_jobs ORDER BY job_key"
+        ).fetchall()
+
+    assert categories == [
+        ("admin", "ofc", "East Texas", "https://www.craigslist.org/search/area/easttexas", 0),
+        ("free-stuff", "zip", "East Texas", "https://www.craigslist.org/search/area/easttexas", 0),
+        ("pets", "pet", "East Texas", "https://www.craigslist.org/search/area/easttexas", 1),
+        ("surfboards", "sss", "East Texas", "https://www.craigslist.org/search/area/easttexas", 0),
+    ]
 
 
 def test_scheduler_runs_jobs_at_configured_times_once(app):

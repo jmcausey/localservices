@@ -279,6 +279,38 @@ def test_status_route_normalizes_completed_to_complete(client, app):
 	assert post["status"] == "complete"
 
 
+def test_status_change_returns_to_originating_craigslist_feed(client, app):
+	post_id = _insert_post_relative_to_now(
+		app, "Recent craigslist listing", "new", "-1 hour"
+	)
+	with app.app_context():
+		_link_craigslist_listing(app, post_id, "status-redirect-1")
+	_log_in(client)
+
+	response = client.post(
+		f"/{post_id}/status/complete",
+		data={"return_to": "/cl"},
+	)
+
+	assert response.status_code == 302
+	assert response.headers["Location"].endswith("/cl")
+
+
+def test_status_change_rejects_external_return_url(client, app):
+	post_id = _insert_post_relative_to_now(
+		app, "Recent post", "new", "-1 hour"
+	)
+	_log_in(client)
+
+	response = client.post(
+		f"/{post_id}/status/pending",
+		data={"return_to": "https://example.com"},
+	)
+
+	assert response.status_code == 302
+	assert response.headers["Location"].endswith("/")
+
+
 def test_user_cannot_change_another_users_post_status(client, app):
 	post_id = _insert_post(app)
 	_log_in(client, user_id=2)

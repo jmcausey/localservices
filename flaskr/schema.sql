@@ -1,17 +1,23 @@
+-- Drop existing tables
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS post;
 DROP TABLE IF EXISTS craigslist_postings;
+DROP TABLE IF EXISTS craigslist_jobs;
 DROP TABLE IF EXISTS chart;
-DROP TABLE IF EXISTS gallary;
+DROP TABLE IF EXISTS gallery;
 DROP TABLE IF EXISTS network_logs;
 DROP TABLE IF EXISTS astronomy;
+DROP TABLE IF EXISTS search_query;
+DROP TABLE IF EXISTS system_logs;
 
+-- Users table
 CREATE TABLE user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL
 );
 
+-- Posts table
 CREATE TABLE post (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   author_id INTEGER NOT NULL,
@@ -20,9 +26,12 @@ CREATE TABLE post (
   body BLOB NOT NULL,
   image TEXT,
   status TEXT NOT NULL DEFAULT 'new',
-  FOREIGN KEY (author_id) REFERENCES user (id)
+  FOREIGN KEY (author_id) REFERENCES user (id) ON DELETE CASCADE
 );
 
+CREATE INDEX idx_post_author_id ON post(author_id);
+
+-- Craigslist postings table
 CREATE TABLE craigslist_postings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   craigslist_id TEXT NOT NULL UNIQUE,
@@ -46,7 +55,8 @@ CREATE TABLE craigslist_postings (
 CREATE INDEX idx_craigslist_postings_posted_at
   ON craigslist_postings(posted_at DESC);
 
-CREATE TABLE IF NOT EXISTS craigslist_jobs (
+-- Craigslist jobs configuration table
+CREATE TABLE craigslist_jobs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   job_key TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
@@ -54,33 +64,23 @@ CREATE TABLE IF NOT EXISTS craigslist_jobs (
   category TEXT NOT NULL CHECK (category IN ('pet', 'sss', 'zip')),
   radius INTEGER NOT NULL DEFAULT 100,
   run_times TEXT NOT NULL DEFAULT '06:00',
+  location_name TEXT NOT NULL DEFAULT 'East Texas',
+  location_url TEXT NOT NULL DEFAULT 'https://www.craigslist.org/search/area/easttexas',
+  is_default_location INTEGER NOT NULL DEFAULT 0,
   enabled INTEGER NOT NULL DEFAULT 1,
   last_run_at TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_craigslist_jobs_enabled
+CREATE INDEX idx_craigslist_jobs_enabled
   ON craigslist_jobs(enabled);
 
-CREATE TABLE IF NOT EXISTS craigslist_jobs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  job_key TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  term TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('pet', 'sss', 'zip')),
-  radius INTEGER NOT NULL DEFAULT 100,
-  run_times TEXT NOT NULL DEFAULT '06:00',
-  enabled INTEGER NOT NULL DEFAULT 1,
-  last_run_at TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+CREATE UNIQUE INDEX idx_craigslist_jobs_default_location
+  ON craigslist_jobs(is_default_location) WHERE is_default_location = 1;
 
-CREATE INDEX IF NOT EXISTS idx_craigslist_jobs_enabled
-  ON craigslist_jobs(enabled);
-
-CREATE TABLE IF NOT EXISTS chart (
+-- Weather / chart table
+CREATE TABLE chart (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at DATETIME DEFAULT (datetime('now', 'localtime')),
   location TEXT NOT NULL,
@@ -98,19 +98,21 @@ CREATE TABLE IF NOT EXISTS chart (
   sunset DATETIME,
   dew_point REAL GENERATED ALWAYS AS (
     CAST(ROUND(
-        (237.3 * (log(humidity / 100.0) + ((17.27 * temperature) / (temperature + 237.3)))) / 
-        (17.27 - (log(humidity / 100.0) + ((17.27 * temperature) / (temperature + 237.3))))
+        (237.3 * (ln(humidity / 100.0) + ((17.27 * temperature) / (temperature + 237.3)))) / 
+        (17.27 - (ln(humidity / 100.0) + ((17.27 * temperature) / (temperature + 237.3))))
     ) AS INTEGER)        
   ) STORED
 );
 
-CREATE TABLE IF NOT EXISTS gallery (
+-- Gallery table
+CREATE TABLE gallery (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   filename TEXT NOT NULL,
   image_data BLOB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS network_logs (
+-- Network logs table
+CREATE TABLE network_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp TEXT NOT NULL DEFAULT (DATETIME('now')),
   source_ip TEXT NOT NULL,
@@ -124,10 +126,11 @@ CREATE TABLE IF NOT EXISTS network_logs (
   message TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_network_logs_timestamp ON network_logs(timestamp);
-CREATE INDEX IF NOT EXISTS idx_network_logs_source_ip ON network_logs(source_ip);
+CREATE INDEX idx_network_logs_timestamp ON network_logs(timestamp);
+CREATE INDEX idx_network_logs_source_ip ON network_logs(source_ip);
 
-CREATE TABLE IF NOT EXISTS astronomy (
+-- Astronomy table
+CREATE TABLE astronomy (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp TEXT NOT NULL DEFAULT (DATETIME('now')),
   location TEXT,
@@ -181,15 +184,17 @@ CREATE TABLE IF NOT EXISTS astronomy (
   moon_angle REAL
 );
 
+-- Search queries tracking
 CREATE TABLE search_query (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    term TEXT NOT NULL,
-    radius INTEGER NOT NULL,
-    status TEXT NOT NULL,
-    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  term TEXT NOT NULL,
+  radius INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS system_logs (
+-- System logs table
+CREATE TABLE system_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   level TEXT NOT NULL,
@@ -200,5 +205,5 @@ CREATE TABLE IF NOT EXISTS system_logs (
   exception TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_system_logs_created_at
+CREATE INDEX idx_system_logs_created_at
   ON system_logs(created_at DESC);

@@ -15,7 +15,7 @@
   }
   .jobs-form {
     display: grid;
-    grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 1.5fr) 10rem 7rem minmax(10rem, 1fr) 6rem auto;
+    grid-template-columns: repeat(3, minmax(9rem, 1fr));
     gap: 0.75rem;
     align-items: end;
     padding: 0.9rem 0;
@@ -119,10 +119,22 @@
       <input id="new-term" name="term" required>
     </div>
     <div>
+      <label for="new-location-name">City / region</label>
+      <input id="new-location-name" name="location_name" value="{{ default_location['location_name'] if default_location else 'East Texas' }}" required>
+    </div>
+    <div>
+      <label for="new-location-url">Craigslist region URL</label>
+      <input id="new-location-url" name="location_url" type="url" value="{{ default_location['location_url'] if default_location else 'https://www.craigslist.org/search/area/easttexas' }}" required>
+    </div>
+    <div>
       <label for="new-category">Category</label>
       <select id="new-category" name="category">
-        {% for value, label in categories.items() %}
-          <option value="{{ value }}">{{ label }}</option>
+        {% for group, options in category_groups.items() %}
+          <optgroup label="{{ group }}">
+            {% for value, label in options %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </optgroup>
         {% endfor %}
       </select>
     </div>
@@ -138,9 +150,13 @@
       <label for="new-enabled">Enabled</label>
       <input id="new-enabled" name="enabled" type="checkbox" checked>
     </div>
+    <div>
+      <label for="new-default-location">Make default location</label>
+      <input id="new-default-location" name="is_default_location" type="checkbox">
+    </div>
     <button type="submit">Add job</button>
   </form>
-  <p class="jobs-note">Use 24-hour local times separated by commas, for example 06:00,18:00.</p>
+  <p class="jobs-note">Use a Craigslist city subdomain URL or an area URL such as https://www.craigslist.org/search/area/easttexas. Search times use 24-hour local time. Mark one job as the default to prefill its location for new jobs; each job can target a different region.</p>
 </section>
 
 <section class="jobs-section" aria-labelledby="current-jobs-heading">
@@ -150,6 +166,10 @@
       <input type="hidden" name="action" value="update">
       <input type="hidden" name="job_id" value="{{ job['id'] }}">
     </form>
+    <form id="delete-job-{{ job['id'] }}" method="post" onsubmit="return confirm('Delete this Craigslist search job?')">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="job_id" value="{{ job['id'] }}">
+    </form>
   {% endfor %}
   <div class="jobs-table-wrap">
     <table class="jobs-table">
@@ -157,10 +177,13 @@
         <tr>
           <th scope="col">Name</th>
           <th scope="col">Search term</th>
+          <th scope="col">City / region</th>
+          <th scope="col">Craigslist URL</th>
           <th scope="col">Category</th>
           <th scope="col">Radius</th>
           <th scope="col">Daily times</th>
           <th scope="col">Enabled</th>
+          <th scope="col">Default</th>
           <th scope="col">Last run</th>
           <th scope="col">Actions</th>
         </tr>
@@ -170,28 +193,31 @@
           <tr>
             <td><input form="job-form-{{ job['id'] }}" aria-label="Job name" name="name" value="{{ job['name'] }}" required></td>
             <td><input form="job-form-{{ job['id'] }}" aria-label="Search term" name="term" value="{{ job['term'] }}" required></td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="City or region" name="location_name" value="{{ job['location_name'] }}" required></td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Craigslist region URL" name="location_url" type="url" value="{{ job['location_url'] }}" required></td>
             <td>
               <select form="job-form-{{ job['id'] }}" aria-label="Category" name="category">
-                {% for value, label in categories.items() %}
-                  <option value="{{ value }}" {% if job['category'] == value %}selected{% endif %}>{{ label }}</option>
+                {% for group, options in category_groups.items() %}
+                  <optgroup label="{{ group }}">
+                    {% for value, label in options %}
+                      <option value="{{ value }}" {% if job['category'] == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </optgroup>
                 {% endfor %}
               </select>
             </td>
             <td><input form="job-form-{{ job['id'] }}" aria-label="Radius in miles" name="radius" type="number" min="5" max="500" value="{{ job['radius'] }}" required></td>
             <td><input form="job-form-{{ job['id'] }}" aria-label="Daily run times" name="run_times" value="{{ job['run_times'] }}" required></td>
             <td><input form="job-form-{{ job['id'] }}" aria-label="Enabled" name="enabled" type="checkbox" {% if job['enabled'] %}checked{% endif %}></td>
+            <td><input form="job-form-{{ job['id'] }}" aria-label="Make default location" name="is_default_location" type="checkbox" {% if job['is_default_location'] %}checked{% endif %}></td>
             <td>{{ job['last_run_at'] or 'Never' }}</td>
             <td>
               <button form="job-form-{{ job['id'] }}" type="submit">Save</button>
-              <form id="delete-job-{{ job['id'] }}" method="post" onsubmit="return confirm('Delete this Craigslist search job?')">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="job_id" value="{{ job['id'] }}">
-              </form>
               <button class="delete-job" form="delete-job-{{ job['id'] }}" type="submit">Delete</button>
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="8">No Craigslist search jobs configured.</td></tr>
+          <tr><td colspan="11">No Craigslist search jobs configured.</td></tr>
         {% endfor %}
       </tbody>
     </table>

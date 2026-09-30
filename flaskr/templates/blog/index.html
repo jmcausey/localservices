@@ -75,6 +75,7 @@
               {% for st in ['new', 'pending', 'complete'] %}
                 {% if post['status'] != st %}
                   <form action="{{ url_for('blog.change_status', id=post['id'], new_status=st) }}" method="post" style="display:inline;">
+                    <input type="hidden" name="return_to" value="{{ request.path }}">
                     <button type="submit" class="btn btn-status">Mark {{ st|capitalize }}</button>
                   </form>
                 {% endif %}

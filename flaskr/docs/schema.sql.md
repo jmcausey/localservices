@@ -124,9 +124,9 @@ Stores editable Craigslist search schedules. Startup creates this table for exis
 
 * **id**: INTEGER (Primary Key, Autoincrement)
 * **job\_key**: TEXT (Not Null, Unique stable key for seeded jobs)
-* **name**, **term**, **category**, **run\_times**: TEXT
+* **name**, **term**, **category**, **run\_times**, **location\_name**, **location\_url**: TEXT
 * **radius**: INTEGER (Search radius in miles)
-* **enabled**: INTEGER (Boolean flag)
+* **enabled**, **is\_default\_location**: INTEGER (Boolean flags)
 * **last\_run\_at**, **created\_at**, **updated\_at**: TEXT
 
 The scheduler reads enabled rows once per minute, executes due jobs at their configured local times, and records outcomes in `search_query`.

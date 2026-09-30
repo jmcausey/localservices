@@ -254,7 +254,10 @@ def change_status(id, new_status):
     db.commit()
 
     flash(f"Status updated to '{new_status}'.")
-    return redirect(url_for('blog.index'))
+    return_to = request.form.get('return_to')
+    if return_to not in {'/', '/cl', '/cl-pets'}:
+        return_to = url_for('blog.index')
+    return redirect(return_to)
 
 
 # --- API & Media Services ---

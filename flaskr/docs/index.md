@@ -10,7 +10,7 @@ The root feed checks `/api/latest-post-id` every 10 seconds and reloads when a n
 
 ## Control Panel and Logs
 
-Authenticated users can filter stored posts at `/control-panel` and add or modify scheduled Craigslist jobs at `/control-panel/cl-jobs`. Jobs include a category, term, radius, enabled state, and one or more daily run times. The **System Logs** page at `/control-panel/system-logs` displays up to 250 recent Flask application log entries and can filter by severity. The logging handler stores `INFO` and higher records, including source location and exception details, in the `system_logs` SQLite table.
+Authenticated users can filter stored posts at `/control-panel` and add or modify scheduled Craigslist jobs at `/control-panel/cl-jobs`. Each job has its own city/region URL, category, search term, radius, enabled state, and daily run times. Mark one job's location as the default to prefill new jobs; jobs can still target different Craigslist regions. Location URLs are restricted to HTTPS Craigslist domains. The **System Logs** page at `/control-panel/system-logs` displays up to 250 recent Flask application log entries and can filter by severity. The logging handler stores `INFO` and higher records, including source location and exception details, in the `system_logs` SQLite table.
 
 Start the scheduler separately with `python scheduler.py` for configured jobs to run.
 
