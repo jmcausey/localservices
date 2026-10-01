@@ -40,6 +40,8 @@ def create_app(test_config=None):
 
     from . import auth
     auth.init_oauth(app)
+    with app.app_context():
+        auth.ensure_identity_schema()
     app.register_blueprint(auth.bp)
 
     from . import blog
