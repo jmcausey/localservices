@@ -17,6 +17,20 @@ CREATE TABLE user (
   password TEXT NOT NULL
 );
 
+-- Google identities. The provider subject (Google's stable "sub" claim)
+-- identifies the external account; it is not the user's email address.
+CREATE TABLE user_identity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  provider TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  email TEXT,
+  FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE,
+  UNIQUE(provider, subject)
+);
+
+CREATE INDEX idx_user_identity_user_id ON user_identity(user_id);
+
 -- Posts table
 CREATE TABLE post (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
