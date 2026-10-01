@@ -1,4 +1,5 @@
 -- Drop existing tables
+DROP TABLE IF EXISTS user_identity;
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS post;
 DROP TABLE IF EXISTS craigslist_postings;
