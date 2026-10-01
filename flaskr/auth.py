@@ -19,6 +19,29 @@ bp = Blueprint("auth", __name__, url_prefix="/auth")
 oauth = OAuth()
 
 
+def ensure_identity_schema():
+    """Create the Google identity mapping table for existing databases."""
+    db = get_db()
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_identity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            provider TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            email TEXT,
+            FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+            UNIQUE(provider, subject)
+        )
+        """
+    )
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_user_identity_user_id "
+        "ON user_identity(user_id)"
+    )
+    db.commit()
+
+
 def init_oauth(app):
     """Register Google OpenID Connect using Google's discovery document."""
     oauth.init_app(app)
