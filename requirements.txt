@@ -11,6 +11,7 @@ plotext
 uniplot
 Flask
 Flask-APScheduler
+Authlib
 requests
 pandas
 SQLAlchemy

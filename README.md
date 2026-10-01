@@ -70,3 +70,15 @@
 ## Credits
 
    Platform architecture and automation logic co-developed by Gemini, built on open-source foundations provided by the Python Software Foundation, Pallets (Flask), SQLite, BeautifulSoup, and gTTS.
+
+## Google OAuth / OpenID Connect
+
+Authentication now uses Google OpenID Connect. Configure these environment variables before starting Flask:
+
+- `FLASK_SECRET_KEY`: a long, random secret used to sign Flask's session cookie.
+- `GOOGLE_CLIENT_ID`: the Google OAuth web-client ID.
+- `GOOGLE_CLIENT_SECRET`: the Google OAuth web-client secret.
+
+Register the application's callback URL as `https://<host>/auth/callback` in Google Cloud. The app requests `openid email profile`, uses Google's stable `sub` claim as the external identity key, and keeps only the local user ID in the Flask session. Google access/ID tokens are not persisted in SQLite.
+
+Existing local user IDs remain intact. A Google identity is linked by `(provider, subject)` and new Google accounts use the verified email as the local username. The legacy password column remains in the schema for compatibility, but the UI now directs users to Google sign-in.
