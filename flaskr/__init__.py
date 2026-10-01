@@ -13,7 +13,9 @@ def create_app(test_config=None):
     hostname = socket.gethostname()
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY='dev',
+        SECRET_KEY=os.environ.get('FLASK_SECRET_KEY'),
+        GOOGLE_CLIENT_ID=os.environ.get('GOOGLE_CLIENT_ID'),
+        GOOGLE_CLIENT_SECRET=os.environ.get('GOOGLE_CLIENT_SECRET'),
         DATABASE='/home/jon/local/data/flaskr.sqlite',
     )
     if test_config is not None:
@@ -37,6 +39,7 @@ def create_app(test_config=None):
         return dict(hostname=socket.gethostname())
 
     from . import auth
+    auth.init_oauth(app)
     app.register_blueprint(auth.bp)
 
     from . import blog
