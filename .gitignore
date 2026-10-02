@@ -4,3 +4,4 @@ instance/
 .webassets-cache
 services/weather/__pycache__
 flaskr/__pycache__
+secrets
