@@ -183,7 +183,7 @@ def fetch_apod_data() -> dict | None:
         return None
 
 
-def post_apod_to_blog(app, author_id: int = 1) -> bool:
+def post_apod_to_blog(app, author_id: int = 2) -> bool:
     """Parses APOD API response and inserts a formatted post into Flask blog."""
     apod = fetch_apod_data()
     if not apod:
@@ -333,7 +333,7 @@ def generate_celestial_dial(db_path: str = DATABASE, output_dir: str = "~/local/
     return filename
 
 
-def post_celestial_dial_to_blog(app, image_name: str, author_id: int = 1) -> bool:
+def post_celestial_dial_to_blog(app, image_name: str, author_id: int = 2) -> bool:
     """Posts the generated celestial dial chart to the Flask blog."""
     title = f"Celestial Dial: {datetime.now().strftime('%B %d, %Y')}"
     web_image_path = f"/static/media/{image_name}"
@@ -346,7 +346,7 @@ def post_celestial_dial_to_blog(app, image_name: str, author_id: int = 1) -> boo
         print(f"Successfully published Celestial Dial post: '{title}'")
         return True
 
-def post_astronomy_data_to_blog(app, location_query: Optional[str] = None, author_id: int = 1) -> bool:
+def post_astronomy_data_to_blog(app, location_query: Optional[str] = None, author_id: int = 2) -> bool:
     """
     Fetches astronomy data, generates the 24-hour celestial dial image,
     and publishes a single blog post containing the data table on the left

@@ -233,7 +233,7 @@ def get_craigslist_listings(
 
     return listings
 
-def insert_scraped_post(listing, author_id=1, status="new", db=None):
+def insert_scraped_post(listing, author_id=2, status="new", db=None):
     """Store a Craigslist listing once and create its corresponding blog post."""
     if db is None:
         app = create_app()
