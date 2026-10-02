@@ -82,7 +82,7 @@
     <ul class="nav-left">
       <li><h1><a href="{{ url_for('index') }}">{{ hostname }}</a></h1></li>
       <li class="{% if request.endpoint in ['blog.cl', 'blog.cl_pets', 'control.craigslist_jobs'] %}active{% endif %}">
-        <a href="{{ url_for('blog.cl') }}">CL</a>
+        <a href="{{ cl_url }}" target="_blank" rel="noopener noreferrer">CL</a>
       </li>
       <li class="{% if request.endpoint and request.endpoint.startswith('weather.') %}active{% endif %}">
         <a href="{{ url_for('weather.weather') }}">Weather</a>
@@ -101,9 +101,7 @@
   <div class="nav-sub-row">
     <ul class="nav-sub-right">
       {% if request.endpoint in ['blog.cl', 'blog.cl_pets', 'control.craigslist_jobs'] %}
-        <li><a href="{{ url_for('blog.cl') }}">All</a></li>
-        <li><a href="{{ url_for('blog.cl_pets') }}">Pets</a></li>
-        <li><a href="{{ url_for('control.craigslist_jobs') }}">Search Jobs</a></li>
+        <li><a href="{{ cl_url }}">Open CL</a></li>
       {% elif request.endpoint and request.endpoint.startswith('weather.') %}
         <li><a href="{{ url_for('weather.weather') }}">Current Radar</a></li>
         <li><a href="#">Forecast</a></li>

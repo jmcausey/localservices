@@ -18,7 +18,6 @@ if str(flaskr_dir) not in sys.path:
 from flaskr import create_app, get_db
 from scrapers.kevinmd import run_scraper as kevinmd_scraper
 from scrapers.informaticsinc import run_scraper as informaticsinc
-from flaskr.craigslist_jobs import run_due_craigslist_jobs
 from flaskr.weather.tasks import ( 
     fetch_weather, 
     post_weather_updates_from_db
@@ -44,16 +43,6 @@ def daily_update():
     post_apod_to_blog(app, author_id=1)    
 
 
-def run_craigslist_search_jobs(force=False):
-    with app.app_context():
-        return run_due_craigslist_jobs(get_db(), force=force)
-
-
-@repeat(every().minute)
-def craigslist_search_jobs():
-    run_craigslist_search_jobs()
-
-
 @repeat(every().minute)
 def cleanup_completed_posts():
     """Removes posts marked as 'complete' from the database."""
@@ -73,7 +62,6 @@ STARTUP_JOBS = [
     ("post_weather_updates_from_db", lambda: post_weather_updates_from_db(app, author_id=1)),
     ("informaticsinc", lambda: informaticsinc()),
     ("kevinmd_scraper", lambda: kevinmd_scraper()),
-    ("craigslist_search_jobs", lambda: run_craigslist_search_jobs(force=True)),
 ]
 
 
