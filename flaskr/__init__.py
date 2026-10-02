@@ -16,6 +16,7 @@ def create_app(test_config=None):
         SECRET_KEY=os.environ.get('FLASK_SECRET_KEY'),
         GOOGLE_CLIENT_ID=os.environ.get('GOOGLE_CLIENT_ID'),
         GOOGLE_CLIENT_SECRET=os.environ.get('GOOGLE_CLIENT_SECRET'),
+        CL_URL=os.environ.get('CL_URL', 'http://127.0.0.1:5001'),
         DATABASE='/home/jon/local/data/flaskr.sqlite',
     )
     if test_config is not None:
@@ -27,6 +28,10 @@ def create_app(test_config=None):
     db.init_app(app)
 
     # Register custom nl2br filter
+    @app.context_processor
+    def inject_cl_url():
+        return dict(cl_url=app.config['CL_URL'])
+
     @app.template_filter('nl2br')
     def nl2br_filter(s):
         if not s:
